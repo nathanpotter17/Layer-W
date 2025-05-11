@@ -1,0 +1,15 @@
+{
+  "name": "winput",
+  "type": "module",
+  "version": "0.1.0",
+  "files": [
+    "winput_bg.wasm",
+    "winput.js",
+    "winput.d.ts"
+  ],
+  "main": "winput.js",
+  "types": "winput.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "name": "wevent",
+  "type": "module",
+  "version": "0.1.0",
+  "files": [
+    "wevent_bg.wasm",
+    "wevent.js",
+    "wevent.d.ts"
+  ],
+  "main": "wevent.js",
+  "types": "wevent.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

@@ -7,4 +7,7 @@ engine/winput/winput/Cargo.lock
 engine/wevent/wevent/target
 engine/wevent/wevent/Cargo.lock
 
+engine/wwindow/wwindow/target
+engine/wwindow/wwindow/Cargo.lock
+
 references.md

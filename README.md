@@ -37,6 +37,8 @@ Purpose: Pathfinding for eventual performant, platform agnostic application solu
   - Wevent, Winput Submodules Established (Alpha)
 - 5/8/25 - [v0.1.1](/engine/research/beta/layerwV0.1.1.md) Beta Proposal Two
   - Walloc Submodule Established (Alpha)
+- 5/13/25 - [v0.1.1](/engine/research/beta/layerwV0.1.1.md) Beta Proposal Revision One
+  - Wwindow Submodule Established (Alpha)
 
 ### Release
 
@@ -44,38 +46,39 @@ Purpose: Pathfinding for eventual performant, platform agnostic application solu
 
 # Resources
 
-### Overviews
+### Tooling Overviews
 
-- [The Complete WebAssembly Story - wasmCloud, Extism, Spin, and etc. Demos](https://www.youtube.com/watch?v=Wxw-YAGYHDc)
-- [Rust Wasm Book](https://rustwasm.github.io/docs/book/why-rust-and-webassembly.html)
-- [WASI & Component Model](https://www.youtube.com/watch?v=mkkYNw8gTQg)
+- [WASM Component Model](https://component-model.bytecodealliance.org/)
+- [Game Libraries in RS](https://arewegameyet.rs/)
 - [WASIX - The Superset of WASI, meant to be a community standard, long term stabilization and support of the existing WASI ABI plus additional non-invasive syscall extensions. Rust Toolchain, Wasmer Runtime.](https://wasix.org/)
 - [wasmCloud - Build, manage, and scale Wasm apps across any cloud, K8s, or edge](https://wasmcloud.com/)
 - [Extism - The cross-language framework for building with WebAssembly using any language as a plugin](https://extism.org/)
+- [WGPU](https://crates.io/crates/wgpu)
+- [HTTP / Async + Await in WASM: wstd crates.io](https://crates.io/crates/wstd)
+- [Bytecode Alliance Projects](https://github.com/bytecodealliance)
+- [WebGPU Specification](https://www.w3.org/TR/webgpu/)
+- [WASM-OPT](https://rustwasm.github.io/book/reference/code-size.html)
 
 ### Guides
 
+- [Rust Wasm Book](https://rustwasm.github.io/docs/book/why-rust-and-webassembly.html)
+- [The Practical WASM Memory Guide](https://radu-matei.com/blog/practical-guide-to-wasm-memory/)
 - [WASM Components in Rust](https://component-model.bytecodealliance.org/language-support/rust.html)
 - [Building components in Rust](https://component-model.bytecodealliance.org/language-support/rust.html)
 - [Bytecode Alliance Active Projects](https://github.com/bytecodealliance/governance/tree/main/projects)
 - [Bytecode Alliance Zulip Archive](https://github.com/bytecodealliance/zulip-archive)
-- [HTTP / Async + Await in WASM: wstd crates.io](https://crates.io/crates/wstd)
-- [WGPU](https://crates.io/crates/wgpu)
-- [Wasm Component Model](https://component-model.bytecodealliance.org/)
 - [Rust WebGPU GUI](https://github.com/zupzup/rust-wgpu-gui-example/tree/main)
-- [The Practical WASM Memory Guide](https://radu-matei.com/blog/practical-guide-to-wasm-memory/)
 - [WASM, Extism in practice using Python (25:00)](https://www.youtube.com/watch?v=Wxw-YAGYHDc)
-- [Bytecode Alliance Projects](https://github.com/bytecodealliance)
-- [WebGPU Specification](https://www.w3.org/TR/webgpu/)
 - [Bevy Engine (Hybrid Approach Example)](https://bevyengine.org/)
-- [WASM-OPT](https://rustwasm.github.io/book/reference/code-size.html)
 
 ### Videos
 
+- [The Complete WebAssembly Story & Modern WASM - Art of the Terminal](https://www.youtube.com/watch?v=Wxw-YAGYHDc)
 - [WASM I/O Youtube](https://www.youtube.com/@wasmio)
+- [WASI & Component Model](https://www.youtube.com/watch?v=mkkYNw8gTQg)
 - [State of WASM 2025, WASM Component Model](https://www.youtube.com/watch?v=KK0FKiQ7nis)
 - [WASI GFX](https://www.youtube.com/watch?v=HBJ1-S65bbM)
-- [Wasm Runtimes: Boxer](https://www.youtube.com/watch?v=rHOwhkHv21U)
+- [WASM Runtimes: Boxer](https://www.youtube.com/watch?v=rHOwhkHv21U)
 - [WASI / WASM powered dev environments](https://www.youtube.com/watch?v=4bbU1gA2aSks)
 - [WasmPay as a reference architecture (platform harness, sidecar pattern) (11:00)](https://www.youtube.com/watch?v=FM2B8kYEasw)
 - [WASMs Future, Moving Away from Containers](https://www.youtube.com/watch?v=ZrLL6jrSVtk&t=480s)

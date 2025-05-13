@@ -1,15 +1,31 @@
 # LAYER-W - Near Native Web Execution Layer for Games & Applications
 
-Layer Stack: rust, wasm_bindgen, cargo, web_sys, js_sys, wasm32-unknown-unknown, wasm32-wasip1/p2, bash
+### Layer Stack
 
-Layer Goals: Robust and Tuneable memory + Mesh LOD / streaming system = A/AA Shading Quality @ ~60FPS
+- rust, wasm_bindgen, cargo, web_sys, js_sys, wasm32-unknown-unknown, wasm32-wasip1/p2, bash
 
-Layer Limits: Total Memory Limit is advertised as 4GB, however, available memory is only 2GB in Chrome, workers can sometimes get the full 4GB. There is a caveat here though, a single JS Worker can request all 4GB, so isolated engine systems can run in workers if shared memory or coalescence isn't as important. Theoretical limit for memory in workers case would be ....
-Drawing system is limited to either OpenGL or WebGPU, the latter of which is still considered experimental. Fixed resolution TBD, but likely 1080 x 720. [WASM Memory Alloc Issue](https://users.rust-lang.org/t/chrome-wasm32-4gb-2gb-limits-workarounds/78161/5)
+### Layer Goals
+
+- Robust and Tuneable memory
+- Mesh LOD / streaming system = A/AA Shading Quality @ ~60FPS
+
+### Layer Limits
+
+- Memory
+
+  - Total Memory Limit is advertised as 4GB, however, available memory is only 2GB in Chrome, workers can sometimes get the full 4GB. There is a caveat here though, a single JS Worker can request all 4GB, so isolated engine systems can run in workers if shared memory or coalescence isn't as important. Theoretical limit for memory in workers case would be some large amount of memory. [WASM Memory Alloc Issue](https://users.rust-lang.org/t/chrome-wasm32-4gb-2gb-limits-workarounds/78161/5)
+
+- Devices
+- `wgpu Device`
+  - pub fn features(&self) -> Features The features which can be used on this device. No additional features can be used, even if the underlying adapter can support them.
+  - pub fn limits(&self) -> Limits The limits which can be used on this device. No better limits can be used, even if the underlying adapter can support them.
+  - Drawing system supports many platforms through rwh + wgpu pipeline. Fixed resolution TBD, but likely 1080 x 720.
+
+### WASM as a Flexible Tool
 
 Containers too heavy for IOT, need linux, then runtime, then container image. WASM is perfect for server usecases in this sense because far less platform specific code ends up on server devices, preventing the need for costly redeploy. API Gateway is most popular usecase for this server usecase, sitting as a middle layer between client and host. wasm-micro-runtime and wasm3 runtimes are meant for IOT.
 
-Host Runtimes: Browser, Wasmtime, WAMR https://github.com/bytecodealliance/wasm-micro-runtime/tree/main
+### Host Runtimes Browser, Wasmtime, WAMR https://github.com/bytecodealliance/wasm-micro-runtime/tree/main
 
 - LayerW: Open World, Distribution and Networking first engine
 

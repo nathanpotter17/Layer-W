@@ -8,15 +8,13 @@ To address different windowing, rendering, and surfacing approaches between web 
 
 ## Graphics API
 
-Winit follows the separation of concerns principle by providing window handles through standard interfaces:
-
-- HasWindowHandle trait: Exposes platform-specific window handles via the Raw Window Handle standard
-- Graphics Integration: Graphics libraries (WGPU, OpenGL, Vulkan) use these handles to create rendering surfaces
-- Zero Graphics Knowledge: Winit remains completely agnostic to whatever graphics API you choose
+- Minimal overhead - it's a thin wrapper around platform APIs
+- Efficient event batching and coalescing
+- No hidden memory costs or background threads
 
 ## Platform Implementations
 
-Winit provides the window handle, which graphics libraries then use to create appropriate surfaces:
+Unlike many window management libraries, winit has first-class web support. It translates web events (mouse, keyboard, touch, gamepad) into a unified event system that works identically across all platforms. Winit implements the raw_window_handle::HasWindowHandle and raw_window_handle::HasDisplayHandle traits under the hood, which is perfect for our usecase.
 
 - Windows: Provides HWND handle for Win32 windows
 - macOS: Provides NSWindow handle for Cocoa windows
@@ -27,30 +25,33 @@ The graphics library (like WGPU) takes Winit's handle and creates the platform-a
 
 The overhead is front-loaded during initialization, then it gets out of the way for actual rendering. Use #[cfg_attr(target_arch = "wasm32", wasm_bindgen(start))]
 
+# WebGPU Browser Compatibility Approaches and Errors
+
+This document contains various experimental approaches and debugging techniques used to resolve WebGPU compatibility issues in browsers.
+
 ## Errors
 
 ```
 Uncaught (in promise) JsValue(OperationError: Failed to execute 'requestDevice' on 'GPUAdapter': The limit "maxInterStageShaderComponents" with a non-undefined value is not recognized.
 
+Another issue - creating the rendering surface. may need to use winit for web_sys windowing support, implementing from scratch using rwh was not trivial.
+```
+
+## Different Limits Approaches Tried
+
 We provide three different defaults.
 
-Limits::downlevel_defaults(). This is a set of limits that is guaranteed to work on almost all backends, including “downlevel” backends such as OpenGL and D3D11, other than WebGL. For most applications we recommend using these limits, assuming they are high enough for your application, and you do not intent to support WebGL.
-Limits::downlevel_webgl2_defaults() This is a set of limits that is lower even than the downlevel_defaults(), configured to be low enough to support running in the browser using WebGL2.
-Limits::default(). This is the set of limits that is guaranteed to work on all modern backends and is guaranteed to be supported by WebGPU. Applications needing more modern features can use this as a reasonable set of limits if they are targeting only desktop and modern mobile devices.
+- Limits::downlevel_defaults(). This is a set of limits that is guaranteed to work on almost all backends, including “downlevel” backends such as OpenGL and D3D11, other than WebGL. For most applications we recommend using these limits, assuming they are high enough for your application, and you do not intent to support WebGL.
+
+- Limits::downlevel_webgl2_defaults() This is a set of limits that is lower even than the downlevel_defaults(), configured to be low enough to support running in the browser using WebGL2.
+
+- Limits::default(). This is the set of limits that is guaranteed to work on all modern backends and is guaranteed to be supported by WebGPU. Applications needing more modern features can use this as a reasonable set of limits if they are targeting only desktop and modern mobile devices.
+
 We recommend starting with the most restrictive limits you can and manually increasing the limits you need boosted. This will let you stay running on all hardware that supports the limits you need.
 
 Limits “better” than the default must be supported by the adapter and requested when requesting a device. If limits “better” than the adapter supports are requested, requesting a device will panic. Once a device is requested, you may only use resources up to the limits requested even if the adapter supports “better” limits.
 
 Requesting limits that are “better” than you need may cause performance to decrease because the implementation needs to support more than is needed. You should ideally only request exactly what you need.
-
-Another issue - creating the rendering surface. may need to use winit for web_sys windowing support, implementing from scratch using rwh was not trivial.
-```
-
-# WebGPU Browser Compatibility Experiments and Debug Approaches
-
-This document contains various experimental approaches and debugging techniques used to resolve WebGPU compatibility issues in browsers.
-
-## Different Limits Approaches Tried
 
 ### 1. Default Limits (Failed)
 

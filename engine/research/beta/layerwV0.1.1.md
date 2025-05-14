@@ -19,7 +19,7 @@
 - `wgpu Device`
   - pub fn features(&self) -> Features The features which can be used on this device. No additional features can be used, even if the underlying adapter can support them.
   - pub fn limits(&self) -> Limits The limits which can be used on this device. No better limits can be used, even if the underlying adapter can support them.
-  - Drawing system supports many platforms through rwh + wgpu pipeline. Fixed resolution TBD, but likely 1080 x 720.
+  - Drawing system supports many platforms through winit (rwh) + wgpu pipeline. Fixed resolution TBD, but likely 1080 x 720.
 
 ### WASM as a Flexible Tool
 

@@ -1,10 +1,12 @@
 # LAYER-W - Near-Native Web Execution Layer for Games & Applications
 
-Purpose: Pathfinding for eventual performant, platform agnostic application solution using WebGPU & Rust + WASM / WASI.
+### Layer-W Purpose
+
+Pathfinding for eventual performant, platform agnostic application solution using WebGPU & Rust + WASM / WASI.
 
 ### Layer-W Stack
 
-- rust, wasm_bindgen, cargo, bash, web_sys, js_sys, wasm32-unknown-unknown, wasm32-wasip1/p2, x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu.
+- rust, wasm_bindgen, cargo, bash, winit, wgpu, web_sys, js_sys, wasm32-unknown-unknown, wasm32-wasip1/p2, x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu.
 
 ### Layer-W Goals
 
@@ -39,6 +41,8 @@ Purpose: Pathfinding for eventual performant, platform agnostic application solu
   - Walloc Submodule Established (Alpha)
 - 5/13/25 - [v0.1.1](/engine/research/beta/layerwV0.1.1.md) Beta Proposal Revision One
   - Wwindow Submodule Established (Alpha)
+- 5/14/25 - [v0.1.2](/engine/research/beta/layerwV0.1.2.md) Beta Proposal Revision Two
+  - Wwindow Submodule (Alpha I)
 
 ### Release
 
@@ -77,6 +81,9 @@ Purpose: Pathfinding for eventual performant, platform agnostic application solu
 - [WASM I/O Youtube](https://www.youtube.com/@wasmio)
 - [WASI & Component Model](https://www.youtube.com/watch?v=mkkYNw8gTQg)
 - [State of WASM 2025, WASM Component Model](https://www.youtube.com/watch?v=KK0FKiQ7nis)
+- [What are Lifetimes Anyway?](https://www.youtube.com/watch?v=gRAVZv7V91Q)
+- [Data & Memory Design in Rust](https://www.youtube.com/watch?v=7_o-YRxf_cc)
+- [The Rust Compiler](https://www.youtube.com/watch?v=Ju7v6vgfEt8)
 - [WASI GFX](https://www.youtube.com/watch?v=HBJ1-S65bbM)
 - [WASM Runtimes: Boxer](https://www.youtube.com/watch?v=rHOwhkHv21U)
 - [WASI / WASM powered dev environments](https://www.youtube.com/watch?v=4bbU1gA2aSks)

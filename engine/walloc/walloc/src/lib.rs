@@ -164,6 +164,10 @@ impl DefaultAllocator {
         // Now try to allocate again with our newly expanded heap
         self.malloc(size_needed - std::mem::size_of::<BlockHeader>())
     }
+
+    pub fn is_ptr_in_heap(&self, ptr: *mut u8) -> bool {
+        ptr >= self.heap_start && ptr < self.heap_end
+    }
 }
 
 #[wasm_bindgen]
@@ -277,8 +281,21 @@ impl Walloc {
         if offset == 0 {
             return; // Null pointer, nothing to free
         }
-        
+
         let ptr = unsafe { self.memory_base.add(offset) };
+
+
+        // Check if pointer is in heap bounds by accessing through the strategy
+        let in_heap = match &mut self.strategy {
+            OptionAllocatorStrategy::Default(allocator) => {
+                allocator.is_ptr_in_heap(ptr)
+            },
+        };
+        
+        if !in_heap {
+            return; // out of bounds
+        }
+        
         
         match &mut self.strategy {
             OptionAllocatorStrategy::Default(allocator) => {

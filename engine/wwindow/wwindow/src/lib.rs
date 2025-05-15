@@ -116,9 +116,9 @@ impl<'window> State<'window> {
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color {
-                            r: 0.1,
-                            g: 0.2,
-                            b: 0.3,
+                            r: 0.0,
+                            g: 0.8,
+                            b: 0.2,
                             a: 1.0,
                         }),
                         store: wgpu::StoreOp::Store,

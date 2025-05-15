@@ -21,22 +21,19 @@ export interface InitOutput {
   readonly memory: WebAssembly.Memory;
   readonly __wbg_walloc_free: (a: number, b: number) => void;
   readonly walloc_new: () => number;
-  readonly walloc_read_u32: (a: number, b: number) => [number, number, number];
-  readonly walloc_write_u32: (a: number, b: number, c: number) => [number, number];
-  readonly walloc_memory_stats: (a: number) => any;
+  readonly walloc_get_memory_view: (a: number, b: number, c: number, d: number) => void;
+  readonly walloc_read_u32: (a: number, b: number, c: number) => void;
+  readonly walloc_write_u32: (a: number, b: number, c: number, d: number) => void;
+  readonly walloc_memory_stats: (a: number) => number;
   readonly walloc_allocate: (a: number, b: number) => number;
   readonly walloc_free: (a: number, b: number) => void;
-  readonly walloc_copy_from_js: (a: number, b: number, c: any) => [number, number];
-  readonly walloc_copy_to_js: (a: number, b: number, c: number) => [number, number, number];
+  readonly walloc_copy_from_js: (a: number, b: number, c: number, d: number) => void;
+  readonly walloc_copy_to_js: (a: number, b: number, c: number, d: number) => void;
   readonly walloc_realloc: (a: number, b: number, c: number, d: number) => number;
-  readonly walloc_get_memory_view: (a: number, b: number, c: number) => [number, number, number];
-  readonly __wbindgen_exn_store: (a: number) => void;
-  readonly __externref_table_alloc: () => number;
-  readonly __wbindgen_export_2: WebAssembly.Table;
-  readonly __wbindgen_malloc: (a: number, b: number) => number;
-  readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
-  readonly __externref_table_dealloc: (a: number) => void;
-  readonly __wbindgen_start: () => void;
+  readonly __wbindgen_export_0: (a: number) => void;
+  readonly __wbindgen_export_1: (a: number, b: number) => number;
+  readonly __wbindgen_export_2: (a: number, b: number, c: number, d: number) => number;
+  readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
 }
 
 export type SyncInitInput = BufferSource | WebAssembly.Module;

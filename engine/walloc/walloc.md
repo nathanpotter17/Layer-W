@@ -2,6 +2,24 @@
 
 Walloc is a custom memory allocator implemented in Rust for WebAssembly applications, specifically optimized for 3D graphics rendering engines. It provides efficient memory management with direct control over the WASM linear memory space, enabling high-performance memory utilization within browser environments.
 
+## Technical Specs
+
+- Default Walloc Allocator
+
+  - Walloc::new()
+
+    - Core Walloc is only 1.125MB
+
+      - This initial memory allocation includes:
+
+        - Compiled Rust code (the Walloc implementation and all other functions)
+        - WebAssembly runtime overhead
+        - The static data segment (global variables, constant data)
+        - Initial stack space
+        - The heap area that the custom DefaultAllocator will manage
+
+      - The WebAssembly module starts with a certain number of memory pages by default, and 18 pages (1.125MB) is quite typical. This initial allocation is determined by the Rust/WebAssembly compiler toolchain based on the static requirements of your program, with some extra space allocated for the heap.
+
 ## Aside: Memory in WASM
 
 - WebAssembly linear memory: WebAssembly memories represent a contiguous array of bytes that have a size that is always a multiple of the
@@ -22,6 +40,7 @@ Walloc is a custom memory allocator implemented in Rust for WebAssembly applicat
 ## Technical Details
 
 - The allocator manages WebAssembly memory pages (64KB chunks) and provides a familiar malloc/free interface. It includes mechanisms for safely transferring data between JavaScript and WebAssembly memory spaces via typed arrays, with built-in bounds checking for memory safety.
+- Rust is the perfect language to implement this in because of its ownership and scope models.
 - This component forms the foundation layer of a 3D rendering engine, enabling optimized memory patterns for graphics data like geometry buffers, textures, and scene graph information, with a focus on supporting LOD (Level of Detail) streaming and efficient memory reuse.
 
 ### Research & Mockup

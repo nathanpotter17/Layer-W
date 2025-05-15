@@ -1,16 +1,31 @@
-# LAYER-W - Near Native Web Execution Layer for Games & Applications
+# LAYER-W - Near-Native Web Execution Layer for Games & Applications
 
-## Stack
+### Layer-W Overview & Purpose
 
-rust, wasm_bindgen, cargo, web_sys, js_sys, wasm32-unknown-unknown, winit, wgpu
+- Overview: A tightly managed WebAssembly 3D engine that maximizes performance through aggressive memory reuse and graphics-oriented memory layout. The reserved memory model allows regioning to be flexible & granular - balancing rendering performance with necessary data persistence.
 
-## Core Concept
+- Purpose: Pathfinding for eventual performant, platform agnostic application solution using WebGPU & Rust + WASM / WASI.
 
-A tightly managed WebAssembly 3D engine that maximizes performance through aggressive memory reuse and graphics-oriented memory layout. The reserved memory model allows regioning to be flexible & granular - balancing rendering performance with necessary data persistence.
+### Layer-W Stack
 
-## WASM as a Flexible Tool
+- rust, wasm_bindgen, cargo, bash, winit, wgpu, web_sys, js_sys, sdl2, Gamepad API, etc.
 
-Containers too heavy for IOT, need linux, then runtime, then container image. WASM is perfect for server usecases in this sense because far less platform specific code ends up on server devices, preventing the need for costly redeploy. API Gateway is most popular usecase for this server usecase, sitting as a middle layer between client and host. wasm-micro-runtime and wasm3 runtimes are meant for IOT.
+### Layer-W Goals
+
+- Robust and Tuneable memory system, Mesh LOD / streaming based content system, integrated networking, multiplatform rendering, engine for A/AA Quality @ ~60FPS
+
+### Layer-W Limitations
+
+- Total Memory Limit is 4GB. Drawing system is limited to either OpenGL or WebGPU, the latter of which is still considered experimental. Fixed resolution TBD, but likely 1080 x 720. Max texture size is 1k, 2k maps used only on critical assets.
+
+### Build System
+
+- Cargo, Bash, wasm-bindgen, wasm-pack, wasmtime, wasm32-unknown-unknown & / or wasm32-wasip1/p2, x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu.
+
+### Host Runtimes
+
+- Windows, Linux, Browser, Wasmtime, WAMR https://github.com/bytecodealliance/wasm-micro-runtime/tree/main
+- More Native platforms may be supported pending WASI improvements (TBD)
 
 ## Key Insights
 
@@ -40,22 +55,22 @@ The key is treating as much of the 4GB as possible as a high-speed circular buff
 
 #### Memory Layout
 
-Total WASM memory: 4GB (walloc secured)
-Ventilated regions: ~3.8GB
-Protected system: ~200MB
-Page size: 64KiB
-Overwrite granularity: Configurable
+- Total WASM memory: 4GB (walloc secured)
+- Ventilated regions: ~3.8GB
+- Protected system: ~200MB
+- Page size: 64KiB
+- Overwrite granularity: Configurable
 
 #### Graphics Targets
 
-Resolution: 1920x1080
-Target FPS: 60
-Quality: AA-tier visuals
-Platform: Web + Native
+- Resolution: 1920x1080
+- Target FPS: 60
+- Quality: AA-tier visuals
+- Platform: Web + Native
 
 #### Core Innovation
 
-The ventilated memory model eliminates traditional allocation overhead by treating memory as a render-state machine rather than a general-purpose heap. Each frame "ventilates" the previous frame's allocations, creating a zero-overhead streaming system perfectly suited for real-time 3D graphics. The engine also ships with first class networking support, allowing assets to be streamed into memory efficiently.
+The ventilated memory model eliminates traditional allocation overhead by treating memory as a render-state machine rather than a general-purpose heap. Each frame "ventilates" the previous frame's allocations, creating a zero-overhead streaming system perfectly suited for real-time 3D graphics. The engine also ships with first class networking support, allowing assets to be streamed into memory efficiently via web workers. Side car patterns are also leveraged for easier integrative support.
 
 ### Memory Tiers
 
@@ -71,18 +86,9 @@ Graphics Pipeline Memory Layout:
 
 ### Rendering System
 
-API: WebGPU via wgpu (web + native)
-Window: winit with raw_window_handle
-Surface: Platform-appropriate (HWND/NSWindow/X11/Canvas)
-
-### Memory-Coupled Features
-
-LOD meshes stored in ventilated pools
-Distance-based memory overwriting
-Frame-synchronized buffer recycling
-Direct GPU memory mapping
-Aggressive region recycling
-Near-to-far overwrite pattern
+- API: WebGPU via wgpu (web + native)
+- Window: winit with raw_window_handle
+- Surface: Platform-appropriate (HWND/NSWindow/X11/Canvas)
 
 ## Windowing & Input System
 
@@ -101,12 +107,28 @@ Near-to-far overwrite pattern
 
 - custom bash
 
+### Completion Progress
+
+- Completed
+  - windowing, walloc, basic input/event loop
+- Needs
+  - walloc regioning, priority, alignment, cache system. Web Worker swarm, 4GB+ memory limit investigation.
+  - Scene Management, UI, Networking, Audio, Physics, Animation, Asset Pipeline
+
+### Memory-Coupled Features
+
+- LOD meshes stored in ventilated pools
+- Distance-based memory overwriting
+- Frame-synchronized buffer recycling
+- Direct GPU memory mapping - compute proper work blocks, consider compute shaders as an extension of WASMs processing ability.
+- Aggressive region recycling
+- Near-to-far overwrite pattern
+
 ### Threading/Concurrency
 
 - Web Workers: Parallel processing
 - Task System: Job scheduling
 - Async Loading: Non-blocking I/O
-- Frame Pacing: Smooth timing
 
 ## Asset Pipeline
 
@@ -114,11 +136,3 @@ Near-to-far overwrite pattern
 - Texture Manager: Mipmap generation & compression
 - Shader Compiler: WGSL/SPIR-V processing
 - Asset Cache: Memory-mapped resource store
-
-### Completion
-
-- Completed
-  - windowing, walloc
-- Needs
-  - walloc regioning, priority, alignment, cache system
-  - Scene Management, UI, Networking, Audio, Physics, Animation, Asset Pipeline

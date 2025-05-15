@@ -1,12 +1,14 @@
 # LAYER-W - Near-Native Web Execution Layer for Games & Applications
 
-### Layer-W Purpose
+### Layer-W Overview & Purpose
 
-Pathfinding for eventual performant, platform agnostic application solution using WebGPU & Rust + WASM / WASI.
+- Overview: A tightly managed WebAssembly 3D engine that maximizes performance through aggressive memory reuse and graphics-oriented memory layout. The reserved memory model allows regioning to be flexible & granular - balancing rendering performance with necessary data persistence.
+
+- Purpose: Pathfinding for eventual performant, platform agnostic application solution using WebGPU & Rust + WASM / WASI.
 
 ### Layer-W Stack
 
-- rust, wasm_bindgen, cargo, bash, winit, wgpu, web_sys, js_sys, wasm32-unknown-unknown, wasm32-wasip1/p2, x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu.
+- rust, wasm_bindgen, cargo, bash, winit, wgpu, web_sys, js_sys, sdl2, Gamepad API, etc.
 
 ### Layer-W Goals
 
@@ -18,12 +20,12 @@ Pathfinding for eventual performant, platform agnostic application solution usin
 
 ### Build System
 
-- Cargo, Bash, wasm-bindgen, wasm-pack, wasmtime, some native toolchains
+- Cargo, Bash, wasm-bindgen, wasm-pack, wasmtime, wasm32-unknown-unknown & / or wasm32-wasip1/p2, x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu.
 
 ### Host Runtimes
 
-- Browser, Wasmtime, WAMR https://github.com/bytecodealliance/wasm-micro-runtime/tree/main
-- Native platforms may be supported pending WASI improvements (TBD)
+- Windows, Linux, Browser, Wasmtime, WAMR https://github.com/bytecodealliance/wasm-micro-runtime/tree/main
+- More Native platforms may be supported pending WASI improvements (TBD)
 
 # Revision History
 
@@ -53,7 +55,7 @@ Pathfinding for eventual performant, platform agnostic application solution usin
 ### Tooling Overviews
 
 - [WASM Component Model](https://component-model.bytecodealliance.org/)
-- [Game Libraries in RS](https://arewegameyet.rs/)
+- [Game Libraries in Rust](https://arewegameyet.rs/)
 - [WASIX - The Superset of WASI, meant to be a community standard, long term stabilization and support of the existing WASI ABI plus additional non-invasive syscall extensions. Rust Toolchain, Wasmer Runtime.](https://wasix.org/)
 - [wasmCloud - Build, manage, and scale Wasm apps across any cloud, K8s, or edge](https://wasmcloud.com/)
 - [Extism - The cross-language framework for building with WebAssembly using any language as a plugin](https://extism.org/)

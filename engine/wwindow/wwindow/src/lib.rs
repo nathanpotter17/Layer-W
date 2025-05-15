@@ -198,7 +198,13 @@ async fn run_app(event_loop: EventLoop<()>, window: Window) {
                         Err(e) => log::error!("render error: {e:?}"),
                     }
                 }
-                _ => {}
+                WindowEvent::KeyboardInput { event, .. } => {
+                    println!("Event: {:?}", event);
+                }
+                _ => {
+                    #[cfg(target_arch = "wasm32")]
+                    web_sys::console::log_1(&format!("Event: {:?}", event).into());
+                }
             },
             Event::AboutToWait => {
                 state.window().request_redraw();

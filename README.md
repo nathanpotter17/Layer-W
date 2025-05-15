@@ -31,20 +31,21 @@
 
 ### Alpha
 
-- 4/22/25 - [v0.0.1a](/engine/research/pre-lim/layerwV0.0.1a.md) Alpha Proposal
-- 4/24/25 - [v0.0.2](/engine/research/pre-lim/layerwV0.0.2.md) Alpha Proposal Two
-- 4/26/25 - [v0.0.3](/engine/research/pre-lim/layerwV0.0.3.md) Alpha Proposal Three
+- 4/22/25 - [v0.0.0a](/engine/research/pre-lim/layerwV0.0.1a.md) Alpha Proposal
+- 4/24/25 - [v0.0.1](/engine/research/pre-lim/layerwV0.0.2.md) Alpha Proposal Two
+- 4/26/25 - [v0.0.2](/engine/research/pre-lim/layerwV0.0.3.md) Alpha Proposal Three
 
 ### Beta
 
 - 5/5/25 - [v0.1.0](/engine/research/beta/layerwV0.1.0.md) Beta Proposal
-  - Wevent, Winput Submodules Established (Alpha)
+  - Wevent, Winput Submodules Established `v0.0.1`
 - 5/8/25 - [v0.1.1](/engine/research/beta/layerwV0.1.1.md) Beta Proposal Two
-  - Walloc Submodule Established (Alpha)
+  - Walloc Submodule Established `v0.0.1`
 - 5/13/25 - [v0.1.1](/engine/research/beta/layerwV0.1.1.md) Beta Proposal Revision One
-  - Wwindow Submodule Established (Alpha)
+  - Wwindow Submodule Established `v0.0.1`
 - 5/14/25 - [v0.1.2](/engine/research/beta/layerwV0.1.2.md) Beta Proposal Revision Two
-  - Wwindow Submodule (Alpha I)
+  - Wwindow Submodule `v0.0.2`
+- 5/15/25 - Walloc Submodule `v0.1.0` & Wwindow Submodule `v0.0.3`
 
 ### Release
 

@@ -2,7 +2,7 @@
 
 ### Layer-W Overview & Purpose
 
-- Overview: A tightly managed WebAssembly 3D engine that maximizes performance through aggressive memory reuse and graphics-oriented memory layout. The reserved memory model allows regioning to be flexible & granular - balancing rendering performance with necessary data persistence.
+- Overview: A tightly managed cross-platform application engine that maximizes performance through aggressive memory reuse and graphics-oriented memory layout. The reserved memory model balances rendering performance with necessary data persistence. Has the flexibility to render all content in a static SPA.
 
 - Purpose: Pathfinding for eventual performant, platform agnostic application solution using WebGPU & Rust + WASM / WASI.
 
@@ -10,7 +10,7 @@
 
 ### Layer-W Stack
 
-- rust, wasm_bindgen, cargo, bash, winit, wgpu, web_sys, js_sys, sdl2, Gamepad API, etc.
+- Rust, wasm_bindgen, Cargo, Bash, Winit, wgpu, web_sys, js_sys, sdl2, Gamepad API, etc.
 
 ### Layer-W Goals
 
@@ -27,9 +27,26 @@
 ### Host Runtimes
 
 - Windows, Linux, Browser, Wasmtime, WAMR https://github.com/bytecodealliance/wasm-micro-runtime/tree/main
-- More Native platforms may be supported pending WASI improvements (TBD)
+- More Native platforms & functionality may be supported pending WASI improvements (TBD)
 
 # Revision History
+
+### Pre-Alpha
+
+- 10/4/24 - [First Commit with WASM](https://github.com/nathanpotter17/emcc-wasm/commit/ebdf00d64fa8fc0808795e5ea19de17e7a0fbd5e)
+- 11/8/24 - [First Library usage of WASM](https://github.com/nathanpotter17/emcc-wasm/commit/ddb3775a94dcfc4f4be8b41e461bd92d9af4cc97)
+  - [AI in WASM using Dlib](https://github.com/nathanpotter17/emcc-wasm/blob/main/src/library/htmlTestDlib/test.cpp)
+- 11/29/24 - [Multi-Library WASM Usage](https://github.com/nathanpotter17/emcc-wasm/commit/e72aa2b3dbcedf2e5a96d7346387b440d1d8cd72)
+  - [WIT, WASM Shared Memory, WASM Module Decl., Emscripten Toolchain + VFS, Image Processing via Shared Buffers](https://github.com/nathanpotter17/emcc-wasm/tree/main/src/library)
+  - [Emscripten & WASM: Zero to Hero](https://github.com/nathanpotter17/emcc-wasm)
+- 3/16/25 - [Start Rust with WASM](https://github.com/nathanpotter17/emcc-wasm/commit/9d9b2275b8ffdb328af5ec97185086d62a310a67)
+  - [Intro to WASI](https://github.com/nathanpotter17/emcc-wasm/blob/main/src/wasi/README.md)
+  - [WASI P1/P2 CLI apps](https://github.com/nathanpotter17/emcc-wasm/tree/main/src/wasi/rust/wasm-cla)
+- 3/29/25 - [Cross Platform Rust + WASM](https://github.com/nathanpotter17/emcc-wasm/commit/1deca23d0ed2955ef7cf09dd879194030f33f6bf)
+  - [PolyglotGPU - WebGPU in Three Languages](https://github.com/nathanpotter17/polyglot-gpu)
+  - [Winit 0.29 + WGPU](https://github.com/nathanpotter17/emcc-wasm/tree/main/src/wasi/rust/wasm-wgpu)
+  - [Rust + wasm-bindgen + web_sys, js_sys](https://github.com/nathanpotter17/emcc-wasm/tree/main/src/wasi/rust/wasm-sys-bindgen)
+  - [Rust + wasm-bindgen + event handled input](https://github.com/nathanpotter17/emcc-wasm/tree/main/src/wasi/rust/wasm-input)
 
 ### Alpha
 
@@ -53,6 +70,9 @@
   - Wwindow Submodule `v0.0.3`
 - 5/16/25 - [v0.1.3](/engine/research/beta/layerwV0.1.2.md)
   - Walloc Submodule `v0.1.1`
+- 5/17/25 - [v0.1.4](/engine/research/beta/layerwV0.1.3.md) Beta Proposal Revision Three
+  - Walloc Submodule `v0.2.0`
+  - Wwindow Submodule `v0.1.0`
 
 ### Release
 
@@ -102,15 +122,3 @@
 - [Bytecode Alliance - Bytecode Alliance Mission](https://www.youtube.com/watch?v=ZrLL6jrSVtk)
 - [K23 - microkernel w/ components, wasmtime runtime OS](https://www.youtube.com/watch?v=LraPUAV-fOo)
 - [Simple Made Easy - Strange Loop](https://www.youtube.com/watch?v=8eXiWkPSb50)
-
-# Pre-Alpha - WASM + Graphics Experiments
-
-- [Emscripten & Wasm Zero to Hero](https://github.com/nathanpotter17/emcc-wasm)
-- [PolyglotGPU - WebGPU in Three Languages](https://github.com/nathanpotter17/polyglot-gpu)
-- [Intro to WASI](https://github.com/nathanpotter17/emcc-wasm/blob/main/src/wasi/README.md)
-- [Rust Wasm ecosystem for simple WASI P1/P2 CLI apps](https://github.com/nathanpotter17/emcc-wasm/tree/main/src/wasi/rust/wasm-cla)
-- [WIT, wasm shared memory, js module decl. from c++ via emscripten, image generation via typed array calls to/from c++ and canvas, emcc mastery and emcc vfs usage](https://github.com/nathanpotter17/emcc-wasm/tree/main/src/library)
-- [Rust + wasm-bindgen + web_sys, js_sys for many simple demos](https://github.com/nathanpotter17/emcc-wasm/tree/main/src/wasi/rust/wasm-sys-bindgen)
-- [Rust + wasm-bindgen + event handled input for a simple canvas game using web as host event loop](https://github.com/nathanpotter17/emcc-wasm/tree/main/src/wasi/rust/wasm-input)
-- [Winit 0.29 + wgpu for drawing to canvas & natively](https://github.com/nathanpotter17/emcc-wasm/tree/main/src/wasi/rust/wasm-wgpu)
-- [WebGPU in TS, glfw + vulkan on windows (C++), WebGPU Dawn (C++)](https://github.com/nathanpotter17/polyglot-gpu)

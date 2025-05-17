@@ -27,31 +27,16 @@
 - Windows, Linux, Browser, Wasmtime, WAMR https://github.com/bytecodealliance/wasm-micro-runtime/tree/main
 - More Native platforms may be supported pending WASI improvements (TBD)
 
-## Key Insights
-
-The key is treating as much of the 4GB as possible as a high-speed circular buffer optimized for GPU consumption, not traditional memory.
-
-- Think in GPU Cache Lines: Align necessary data to GPU-preferred boundaries
-- Overwrite, Don't Allocate: Your ventilated approach is perfect
-- Predict and Prefetch: Use velocity-based asset prediction
-- Compress Aggressively: 50-70% reduction is achievable
-- Cull Early and Often: GPU-based culling is fastest
-- Use Web Workers: Parallel culling and decompression
-- Adapt Quality Dynamically: Maintain 60fps above all
-- Profile Everything: Measure, don't guess
-
 ## Memory Architecture
 
-### WALLOC Module
-
-- Always allocates full 4GB WASM memory space (large pre-allocation manager)
-- No practical limits on desktop/web (mobile TBD)
-- Memory regions tied directly to their respective functionality.
-- Region Manager: Ventilated pool segmentation
-- Overwrite Scheduler: Frame-based memory recycling
-- Protection System: Core system memory guards
-
 ### WALLOC Technical Specifications
+
+#### Networking System
+
+Because the browser effectively has a compiler that we can make use of, extra wasm code can be networked in, and compiled
+on the client device, without the need to hit any endpoints apart from the one delivering the code. This could allow for many
+different HMR or other network oriented configurations for code compilation & delivery. It also lends itself to the distribution
+first ethos of Layer-W.
 
 #### Memory Layout
 
@@ -72,15 +57,18 @@ The key is treating as much of the 4GB as possible as a high-speed circular buff
 
 The ventilated memory model eliminates traditional allocation overhead by treating memory as a render-state machine rather than a general-purpose heap. Each frame "ventilates" the previous frame's allocations, creating a zero-overhead streaming system perfectly suited for real-time 3D graphics. The engine also ships with first class networking support, allowing assets to be streamed into memory efficiently via web workers. Side car patterns are also leveraged for easier integrative support.
 
+- Memory regions tied directly to their respective functionality.
+- Region Manager: Ventilated pool segmentation
+- Overwrite Scheduler: Frame-based memory recycling
+- Protection System: Core system memory guards
+
 ### Memory Tiers
 
-Graphics Pipeline Memory Layout:
+Layer W Memory Layout:
 
-- Mesh Pool: Dynamic LOD meshes (continuously recycled)
-- Texture Pool: Streaming texture data (overwritten by distance)
-- Command Pool: GPU command buffers (per-frame recreation)
-- Scratch Pool: Temporary calculations (no persistence)
-- System Pool: Core engine state (protected region)
+- GPU Pool: GPU command buffers (per-frame recreation)
+- Scene Pool: Temporary calculations (no persistence)
+- Logic Pool: Core engine state (protected region)
 
 ## Graphics Pipeline
 

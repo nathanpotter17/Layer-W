@@ -6,6 +6,8 @@
 
 - Purpose: Pathfinding for eventual performant, platform agnostic application solution using WebGPU & Rust + WASM / WASI.
 
+- Ethos: Simplicity is a pre-requisite for reliability, however, ignoring complexity for too long will slow things down, and focusing too much on the ease will lead to repeated code or refactoring. What matters the most is the complexity yielded for the user, not the complexity of the solution.
+
 ### Layer-W Stack
 
 - rust, wasm_bindgen, cargo, bash, winit, wgpu, web_sys, js_sys, sdl2, Gamepad API, etc.
@@ -38,14 +40,19 @@
 ### Beta
 
 - 5/5/25 - [v0.1.0](/engine/research/beta/layerwV0.1.0.md) Beta Proposal
-  - Wevent, Winput Submodules Established `v0.0.1`
+  - Wevent Submodule Established `v0.0.1`
+  - Winput Submodule Established `v0.0.1`
 - 5/8/25 - [v0.1.1](/engine/research/beta/layerwV0.1.1.md) Beta Proposal Two
   - Walloc Submodule Established `v0.0.1`
-- 5/13/25 - [v0.1.1](/engine/research/beta/layerwV0.1.1.md) Beta Proposal Revision One
+- 5/13/25 - [v0.1.2](/engine/research/beta/layerwV0.1.1.md) Beta Proposal Revision One
   - Wwindow Submodule Established `v0.0.1`
-- 5/14/25 - [v0.1.2](/engine/research/beta/layerwV0.1.2.md) Beta Proposal Revision Two
+- 5/14/25 - [v0.1.3](/engine/research/beta/layerwV0.1.2.md) Beta Proposal Revision Two
   - Wwindow Submodule `v0.0.2`
-- 5/15/25 - Walloc Submodule `v0.1.0` & Wwindow Submodule `v0.0.3`
+- 5/15/25 - [v0.1.3](/engine/research/beta/layerwV0.1.2.md)
+  - Walloc Submodule `v0.1.0`
+  - Wwindow Submodule `v0.0.3`
+- 5/16/25 - [v0.1.3](/engine/research/beta/layerwV0.1.2.md)
+  - Walloc Submodule `v0.1.1`
 
 ### Release
 
@@ -94,6 +101,7 @@
 - [WASMs Future, Moving Away from Containers](https://www.youtube.com/watch?v=ZrLL6jrSVtk&t=480s)
 - [Bytecode Alliance - Bytecode Alliance Mission](https://www.youtube.com/watch?v=ZrLL6jrSVtk)
 - [K23 - microkernel w/ components, wasmtime runtime OS](https://www.youtube.com/watch?v=LraPUAV-fOo)
+- [Simple Made Easy - Strange Loop](https://www.youtube.com/watch?v=8eXiWkPSb50)
 
 # Pre-Alpha - WASM + Graphics Experiments
 

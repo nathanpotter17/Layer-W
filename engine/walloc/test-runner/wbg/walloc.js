@@ -226,6 +226,13 @@ export class Walloc {
         return Walloc.__wrap(ret);
     }
     /**
+     * @returns {Walloc}
+     */
+    static new_tiered() {
+        const ret = wasm.walloc_new_tiered();
+        return Walloc.__wrap(ret);
+    }
+    /**
      * @param {number} offset
      * @param {number} length
      * @returns {Uint8Array}
@@ -246,46 +253,28 @@ export class Walloc {
         }
     }
     /**
-     * @param {number} offset
+     * @param {number} size
+     * @param {number} tier_number
      * @returns {number}
      */
-    read_u32(offset) {
-        try {
-            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-            wasm.walloc_read_u32(retptr, this.__wbg_ptr, offset);
-            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
-            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
-            var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
-            if (r2) {
-                throw takeObject(r1);
-            }
-            return r0 >>> 0;
-        } finally {
-            wasm.__wbindgen_add_to_stack_pointer(16);
-        }
+    allocate_tiered(size, tier_number) {
+        const ret = wasm.walloc_allocate_tiered(this.__wbg_ptr, size, tier_number);
+        return ret >>> 0;
     }
     /**
-     * @param {number} offset
-     * @param {number} value
+     * @param {number} tier_number
+     * @returns {boolean}
      */
-    write_u32(offset, value) {
-        try {
-            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-            wasm.walloc_write_u32(retptr, this.__wbg_ptr, offset, value);
-            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
-            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
-            if (r1) {
-                throw takeObject(r0);
-            }
-        } finally {
-            wasm.__wbindgen_add_to_stack_pointer(16);
-        }
+    reset_tier(tier_number) {
+        const ret = wasm.walloc_reset_tier(this.__wbg_ptr, tier_number);
+        return ret !== 0;
     }
     /**
+     * @param {number} tier_number
      * @returns {object}
      */
-    memory_stats() {
-        const ret = wasm.walloc_memory_stats(this.__wbg_ptr);
+    tier_stats(tier_number) {
+        const ret = wasm.walloc_tier_stats(this.__wbg_ptr, tier_number);
         return takeObject(ret);
     }
     /**
@@ -341,14 +330,11 @@ export class Walloc {
         }
     }
     /**
-     * @param {number} offset
-     * @param {number} old_size
-     * @param {number} new_size
-     * @returns {number}
+     * @returns {object}
      */
-    realloc(offset, old_size, new_size) {
-        const ret = wasm.walloc_realloc(this.__wbg_ptr, offset, old_size, new_size);
-        return ret >>> 0;
+    memory_stats() {
+        const ret = wasm.walloc_memory_stats(this.__wbg_ptr);
+        return takeObject(ret);
     }
 }
 
@@ -398,6 +384,10 @@ function __wbg_get_imports() {
         const ret = new Object();
         return addHeapObject(ret);
     };
+    imports.wbg.__wbg_new_78feb108b6472713 = function() {
+        const ret = new Array();
+        return addHeapObject(ret);
+    };
     imports.wbg.__wbg_new_a12002a7f91c75be = function(arg0) {
         const ret = new Uint8Array(getObject(arg0));
         return addHeapObject(ret);
@@ -405,6 +395,10 @@ function __wbg_get_imports() {
     imports.wbg.__wbg_newwithbyteoffsetandlength_d97e637ebe145a9a = function(arg0, arg1, arg2) {
         const ret = new Uint8Array(getObject(arg0), arg1 >>> 0, arg2 >>> 0);
         return addHeapObject(ret);
+    };
+    imports.wbg.__wbg_push_737cfc8c1432c2c6 = function(arg0, arg1) {
+        const ret = getObject(arg0).push(getObject(arg1));
+        return ret;
     };
     imports.wbg.__wbg_set_65595bdd868b3009 = function(arg0, arg1, arg2) {
         getObject(arg0).set(getObject(arg1), arg2 >>> 0);

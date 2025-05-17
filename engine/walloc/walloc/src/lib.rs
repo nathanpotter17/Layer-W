@@ -12,7 +12,7 @@ pub enum OptionAllocatorStrategy {
 }
 
 // Memory block header structure
-#[repr(C)]
+#[repr(C)] // replicate c struct. no reordering.
 struct BlockHeader {
     size: usize,       // Size of the block (including header)
     next: *mut BlockHeader, // Pointer to the next free block (if in free list)
@@ -20,6 +20,12 @@ struct BlockHeader {
 }
 
 pub struct DefaultAllocator {
+    free_list_head: *mut BlockHeader,
+    heap_start: *mut u8,
+    heap_end: *mut u8,
+}
+
+pub struct Wallocator {
     free_list_head: *mut BlockHeader,
     heap_start: *mut u8,
     heap_end: *mut u8,
@@ -46,7 +52,12 @@ impl DefaultAllocator {
     
     pub fn malloc(&mut self, size: usize) -> *mut u8 {
         // Align the requested size to 8 bytes (common alignment requirement)
-        let aligned_size = (size + 7) & !7;
+        let aligned_size;
+        if size > 1024 {
+            aligned_size = (size + 63) & !63;  // Cache Line Alignment, for larger blocks.
+        } else {
+            aligned_size = (size + 7) & !7;    // Regular 8 byte alignment for smaller blocks.
+        }
         let total_size = aligned_size + std::mem::size_of::<BlockHeader>();
         
         // Find a suitable free block using first-fit strategy

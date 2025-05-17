@@ -5,12 +5,8 @@ edition = "2024"
 
 [lib]
 name = "walloc"
-path = "src/lib.rs"
+path = "src/libIMP.rs"
 crate-type = ["cdylib"]
-
-[[bin]]
-name = "walloc-bin"
-path = "src/main.rs"
 
 [dependencies]
 js-sys = "0.3.77"

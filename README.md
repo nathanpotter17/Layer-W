@@ -29,6 +29,12 @@
 - Windows, Linux, Browser, Wasmtime, WAMR https://github.com/bytecodealliance/wasm-micro-runtime/tree/main
 - More Native platforms & functionality may be supported pending WASI improvements (TBD)
 
+## Feature Parity
+
+- Shared Business Logic: All core algorithms and business logic are in platform-agnostic Rust code.
+- Platform Adapters: Adapter layers via cfg provide the same capabilities through different implementations.
+- Feature Detection: Graceful degradation based on available features.
+
 # Revision History
 
 ### Pre-Alpha
@@ -70,8 +76,7 @@
   - Wwindow Submodule `v0.0.3`
 - 5/16/25 - [v0.1.3](/engine/research/beta/layerwV0.1.2.md)
   - Walloc Submodule `v0.1.1`
-- 5/17/25 - [v0.1.4](/engine/research/beta/layerwV0.1.3.md) Beta Proposal Revision Three
-  - Walloc Submodule `v0.2.0`
+- 5/18/25 - [v0.1.4](/engine/research/beta/layerwV0.1.3.md) Beta Proposal Revision Three
   - Wwindow Submodule `v0.1.0`
 
 ### Release

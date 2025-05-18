@@ -100,11 +100,11 @@
         Your runtime or compiled code (e.g., from C/C++ via Emscripten) expects
         it for heap/stack.
       </li>
+      <li>
+        If you're manually writing WAT (WebAssembly Text) or compiling from
+        minimal Rust/AssemblyScript, you can skip memory declaration entirely.
+      </li>
     </ul>
-    <p>
-      If you're manually writing WAT (WebAssembly Text) or compiling from
-      minimal Rust/AssemblyScript, you can skip memory declaration entirely.
-    </p>
 
     <div class="demo-container">
       <h2 style="font-style: italic">WALLOC Dashboard</h2>
@@ -131,17 +131,16 @@
         <h3>Memory Statistics & Growth Testing</h3>
         <pre id="memory-stats">Loading...</pre>
       </div>
+      <div class="control-group">
+        <h3>Game Sim Controls</h3>
+        <div style="flex-direction: row">
+          <button id="start-btn">Start Game Loop</button>
+          <button id="stop-btn">Stop Game Loop</button>
+        </div>
+      </div>
 
       <h3>Console Output</h3>
       <div id="console" class="console"></div>
-    </div>
-
-    <div class="control-group">
-      <h3>Game Sim Controls</h3>
-      <div style="flex-direction: row">
-        <button id="start-btn">Start Game Loop</button>
-        <button id="stop-btn">Stop Game Loop</button>
-      </div>
     </div>
 
     <script type="module" src="tier.js"></script>

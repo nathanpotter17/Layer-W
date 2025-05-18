@@ -123,14 +123,88 @@ Solution: Always invalidate the cache before setting the availability flag. This
 This prevents the race condition where cache contains outdated information while the flag indicates data is ready.
 This technique is called "polling" or "scheduled polling" and is common in page based memory allocators.
 
-## Advanced Considerations
+## Advanced Considerations - For Frequent Allocations
 
-### Graduated Migration
+### Vectorization and SIMD
 
-- Some objects might start in the bottom tier but need to be "promoted"
-- Implement a mechanism to copy objects to higher tiers when needed
+Since you're in a WebAssembly context, you can use SIMD (Single Instruction, Multiple Data) instructions to process multiple bytes at once:
 
-### Size Tuning
+```rust
+// Import WASM SIMD intrinsics
+use core::arch::wasm32::*;
 
-- Different scene types will have different optimal arena sizes
-- Consider making these configurable or self-adjusting
+// Example: Fill memory with a value using v128 operations (16 bytes at once)
+pub fn fast_fill(ptr: *mut u8, size: usize, value: u8) {
+    let aligned_size = size & !15; // Round down to multiple of 16
+    let simd_value = v128_set_splat_i8(value as i8);
+
+    // Process 16 bytes at a time
+    for i in (0..aligned_size).step_by(16) {
+        unsafe {
+            let dest = ptr.add(i) as *mut v128;
+            v128_store(dest, simd_value);
+        }
+    }
+
+    // Handle remaining bytes
+    for i in aligned_size..size {
+        unsafe {
+            *ptr.add(i) = value;
+        }
+    }
+}
+```
+
+### Type Punning for Wider Access
+
+```rust
+pub fn fast_copy_u32(src: *const u8, dst: *mut u8, count_bytes: usize) {
+    let count_u32 = count_bytes / 4;
+
+    // Reinterpret as u32 pointers
+    let src_u32 = src as *const u32;
+    let dst_u32 = dst as *mut u32;
+
+    // Copy 4 bytes at a time
+    for i in 0..count_u32 {
+        unsafe {
+            *dst_u32.add(i) = *src_u32.add(i);
+        }
+    }
+
+    // Handle remaining bytes
+    for i in (count_u32 * 4)..count_bytes {
+        unsafe {
+            *dst.add(i) = *src.add(i);
+        }
+    }
+}
+```
+
+### Alignment Operations
+
+Ensuring your memory operations are aligned to cache line boundaries (64 bytes) can significantly improve performance:
+
+```rust
+pub fn aligned_copy(src: *const u8, dst: *mut u8, size: usize) {
+    // Check if pointers are aligned to cache line (64 bytes)
+    if (src as usize % 64 == 0) && (dst as usize % 64 == 0) && (size % 64 == 0) {
+        // Fast path: 64-byte aligned copy
+        for i in (0..size).step_by(64) {
+            // Copy an entire cache line at once
+            unsafe {
+                let src_ptr = src.add(i) as *const [u8; 64];
+                let dst_ptr = dst.add(i) as *mut [u8; 64];
+                *dst_ptr = *src_ptr;
+            }
+        }
+    } else {
+        // Fallback for unaligned memory
+        for i in 0..size {
+            unsafe {
+                *dst.add(i) = *src.add(i);
+            }
+        }
+    }
+}
+```

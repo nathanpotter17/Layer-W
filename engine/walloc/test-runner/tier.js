@@ -7,7 +7,6 @@ let frameCount = 0;
 const MB = 1024 * 1024;
 const TIER = { RENDER: 0, SCENE: 1, ENTITY: 2 };
 
-// Simple logging function
 function log(message) {
   console.log(message);
   const consoleDiv = document.getElementById('console');
@@ -19,7 +18,7 @@ function log(message) {
   }
 }
 
-// Initialize WebAssembly
+// Initialize Allocator
 async function initWasm() {
   try {
     await init();
@@ -41,7 +40,6 @@ async function initWasm() {
   }
 }
 
-// Display tier stats
 function showTierStats() {
   const stats = allocator.memory_stats();
   log('Memory stats:');
@@ -57,6 +55,38 @@ function showTierStats() {
   }
 }
 
+// Allocate the ones the only need to be called once per scene.
+function runStartTest() {
+  // Allocate 100 entities of 1MB each - ~0.1GB per scene. Entities culled in and out.
+  if (frameCount % 30 === 0) {
+    log('Managing Entities');
+
+    for (let i = 0; i < 100; i++) {
+      allocator.allocate_tiered(1 * MB, TIER.ENTITY);
+    }
+  }
+
+  // Simulate loading the scene's textures.
+
+  // Small texture (256x256 RGBA = 262KB)
+  const smallTexture = 256 * 256 * 4;
+  const smallOffset = allocator.allocate_tiered(smallTexture, TIER.SCENE);
+
+  // Medium texture (512x512 RGBA = 1MB)
+  const mediumTexture = 512 * 512 * 4;
+  const mediumOffset = allocator.allocate_tiered(mediumTexture, TIER.SCENE);
+
+  // Large texture (1024x1024 RGBA = 4MB)
+  const largeTexture = 1024 * 1024 * 4;
+  const largeOffset = allocator.allocate_tiered(largeTexture, TIER.SCENE);
+
+  log(
+    `Allocated 3 textures in SCENE tier: 256KB, 1MB, and 4MB. ${smallOffset} ${mediumOffset} ${largeOffset}`
+  );
+
+  log('Entities added. Scene Loaded.');
+}
+
 // Simple test function that runs every frame
 function runTest() {
   frameCount++;
@@ -67,17 +97,25 @@ function runTest() {
     log(`--- Frame ${frameCount} ---`);
   }
 
-  // 1. Test RENDER tier - allocate a 1MB block every 30 frames
-  if (frameCount % 30 === 0) {
-    const renderSize = 1 * MB;
-    const renderOffset = allocator.allocate_tiered(renderSize, TIER.RENDER);
-    if (shouldLog) {
-      log(`Allocated ${renderSize / MB}MB in RENDER tier`);
-    }
+  // 1. Test RENDER tier - Allocate Every Frame - 1080 x 720 Frame - 4 channel, 32-bit color depth - ~2.97MB/frame
+
+  // Clear image, this will flip the memory to become available.
+  // The bump allocation is very fast - it's essentially just an atomic addition operation to advance a pointer.
+  // The underlying code uses atomic operations to manage the offsets, which makes it thread-safe even in concurrent environments.
+  // Instead of repeatedly allocating and freeing, which could lead to fragmentation, reset the entire arena at once and start fresh for each frame.
+  allocator.reset_tier(TIER.RENDER);
+  if (shouldLog) {
+    log('Reset RENDER tier');
+  }
+  // Allocate one frame at a time.
+  const renderSize = 3 * MB;
+  const renderOffset = allocator.allocate_tiered(renderSize, TIER.RENDER);
+  if (shouldLog) {
+    log(`Allocated ${renderSize / MB}MB in RENDER tier`, renderOffset);
   }
 
-  // 2. Test SCENE tier - allocate 3 different texture sizes
-  if (frameCount % 20 === 0) {
+  // 2. Test SCENE tier - allocate 3 different texture sizes every 30 frames - ~5.5MB every 60 frames
+  if (frameCount % 60 === 0) {
     // Small texture (256x256 RGBA = 262KB)
     const smallTexture = 256 * 256 * 4;
     const smallOffset = allocator.allocate_tiered(smallTexture, TIER.SCENE);
@@ -91,34 +129,13 @@ function runTest() {
     const largeOffset = allocator.allocate_tiered(largeTexture, TIER.SCENE);
 
     if (shouldLog) {
-      log(`Allocated 3 textures in SCENE tier: 256KB, 1MB, and 4MB`);
+      log(
+        `Allocated 3 textures in SCENE tier: 256KB, 1MB, and 4MB. ${smallOffset} ${mediumOffset} ${largeOffset}`
+      );
     }
   }
 
-  // 3. Test ENTITY tier - reset every frame and allocate entities
-  allocator.reset_tier(TIER.ENTITY);
-
-  // Allocate 100 entities of 256 bytes each
-  for (let i = 0; i < 100; i++) {
-    const entityOffset = allocator.allocate_tiered(256, TIER.ENTITY);
-  }
-
-  // 4. Reset tiers occasionally
-  if (frameCount % 100 === 0) {
-    allocator.reset_tier(TIER.SCENE);
-    if (shouldLog) {
-      log('Reset SCENE tier');
-    }
-  }
-
-  if (frameCount % 300 === 0) {
-    allocator.reset_tier(TIER.RENDER);
-    if (shouldLog) {
-      log('Reset RENDER tier');
-    }
-  }
-
-  // 5. Show stats
+  //Show stats
   if (shouldLog) {
     showTierStats();
   }
@@ -130,6 +147,7 @@ function runTest() {
 // Start the simulation
 function startSimulation() {
   log('Starting simulation');
+  runStartTest();
   if (!frameId) {
     frameCount = 0;
     frameId = requestAnimationFrame(runTest);

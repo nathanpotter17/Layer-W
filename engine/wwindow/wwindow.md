@@ -14,12 +14,14 @@ To address different windowing, rendering, and surfacing approaches between web 
 
 ## Platform Implementations
 
-Unlike many window management libraries, winit has first-class web support. It translates web events (mouse, keyboard, touch, gamepad) into a unified event system that works identically across all platforms. Winit implements the raw_window_handle::HasWindowHandle and raw_window_handle::HasDisplayHandle traits under the hood, which is perfect for our usecase.
+Unlike many window management libraries, winit has first-class web support through wry, web_sys, & js_sys. It translates web events (mouse, keyboard, touch, gamepad) into a unified event system that works identically across all platforms. Winit implements the raw_window_handle::HasWindowHandle and raw_window_handle::HasDisplayHandle traits under the hood, which is perfect for our usecase.
 
-- Windows: Provides HWND handle for Win32 windows
-- macOS: Provides NSWindow handle for Cocoa windows
-- Linux: Provides X11 Window ID or Wayland surface handle
-- Web/WASM: Provides HTML canvas element handle
+- Wry: Accepts Raw Window Handle Implementations for Native Chromium WebView
+  - Windows: Provides HWND handle for Win32 windows
+  - macOS: Provides NSWindow handle for Cocoa windows
+  - Linux: Provides X11 Window ID or Wayland surface handle
+  - Web/WASM: Provides HTML canvas element handle
+    - Integrated Networking via web_sys, js_sys
 
 The graphics library (like WGPU) takes Winit's handle and creates the platform-appropriate surface (Direct3D/Vulkan on Windows, Metal on macOS, Vulkan on Linux, WebGPU on web).
 

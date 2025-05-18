@@ -19,7 +19,7 @@ struct BlockHeader {
     size: usize,
     next: *mut BlockHeader,
     is_free: bool,
-    tier: u8, // Added tier information to track which arena this block belongs to
+    tier: u8,
 }
 
 // Available tiers in our hierarchy
@@ -456,15 +456,6 @@ impl TieredAllocator {
     pub fn is_ptr_valid(&self, ptr: *mut u8) -> bool {
         self.is_ptr_in_arena(ptr) || self.fallback.is_ptr_in_heap(ptr)
     }
-    
-    // Create a scene context that can allocate entities
-    // pub fn create_scene_context(&self) -> SceneContext {
-    //     SceneContext {
-    //         arena: Arc::clone(&self.scene_arena),
-    //         entity_arena: Arc::clone(&self.entity_arena),
-    //         allocations: Vec::new(),
-    //     }
-    // }
 }
 
 #[wasm_bindgen]
@@ -530,10 +521,6 @@ impl Walloc {
         let ptr = match &mut self.strategy {
             AllocatorStrategy::Tiered(allocator) => {
                 allocator.allocate(size, tier)
-            },
-            AllocatorStrategy::Default(allocator) => {
-                // Fallback to regular allocation
-                allocator.malloc(size)
             },
         };
 
@@ -603,14 +590,10 @@ impl Walloc {
     // Standard allocate (backward compatibility)
     #[wasm_bindgen]
     pub fn allocate(&mut self, size: usize) -> usize {
-        // For backward compatibility, use Entity tier in tiered mode
-        // or just regular malloc in default mode
+        // For backward compatibility, use regular malloc in default mode
         let ptr = match &mut self.strategy {
             AllocatorStrategy::Default(allocator) => {
                 allocator.malloc(size)
-            },
-            AllocatorStrategy::Tiered(allocator) => {
-                allocator.allocate(size, Tier::Entity)
             },
         };
 

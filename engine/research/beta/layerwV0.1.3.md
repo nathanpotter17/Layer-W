@@ -14,7 +14,7 @@
 
 ### Layer-W Stack
 
-- Rust, wasm_bindgen, Cargo, Bash, Winit, wgpu, web_sys, js_sys, sdl2, Gamepad API, etc.
+- Rust, Cargo, Bash, Winit, Wry, wgpu, wasm_bindgen, web_sys, js_sys, sdl2, Gamepad API, etc.
 
 ### Layer-W Goals
 
@@ -32,6 +32,12 @@
 
 - Windows, Linux, Browser, Wasmtime, WAMR https://github.com/bytecodealliance/wasm-micro-runtime/tree/main
 - More Native platforms & functionality may be supported pending WASI improvements (TBD)
+
+## Feature Parity
+
+- Shared Business Logic: All core algorithms and business logic are in platform-agnostic Rust code.
+- Platform Adapters: Adapter layers via cfg provide the same capabilities through different implementations.
+- Feature Detection: Graceful degradation based on available features.
 
 ### Core Innovation
 

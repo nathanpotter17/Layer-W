@@ -1,4 +1,4 @@
-# LAYER-W - Near-Native Web Execution Layer for Games & Applications
+![img](./img/LayerW.png)
 
 ### Layer-W Overview & Purpose
 
@@ -7,6 +7,10 @@
 - Purpose: Pathfinding for eventual performant, platform agnostic application solution using WebGPU & Rust + WASM / WASI.
 
 - Ethos: Simplicity is a pre-requisite for reliability, however, ignoring complexity for too long will slow things down, and focusing too much on the ease will lead to repeated code or refactoring. What matters the most is the complexity yielded for the user, not the complexity of the solution.
+  - Tenants
+    - More with Less
+    - Isogaba Maware
+    - Five S
 
 ### Layer-W Stack
 
@@ -58,11 +62,7 @@ Layer W Memory Layout:
 
 ### Networking System
 
-Because the browser effectively has a compiler that we can make use of, extra wasm code can be networked in, and compiled
-on the client device, without the need to hit any endpoints apart from the one delivering the code. This could allow for many
-different HMR or other network oriented configurations for code compilation & delivery. It also lends itself to the distribution
-first ethos of Layer-W - This kind of availability would allow for networking in all kinds of functionality to Layer-W. The main
-limitation here is the download size.
+Because the browser effectively has a compiler that we can make use of, extra wasm code can be networked in, and compiled on the client device, without the need to hit any endpoints apart from the one delivering the code. This could allow for many different HMR or other network oriented configurations for code compilation & delivery. It also lends itself to the distribution first ethos of Layer-W - This kind of availability would allow for networking in all kinds of functionality to Layer-W. The main limitation here is the download size.
 
 ### Graphics Pipeline
 
@@ -98,7 +98,7 @@ limitation here is the download size.
   - winit basic input/event loop & windowing, walloc default & tiered allocators
 - Needs
   - walloc cache system. Web Worker swarm, 4GB++ memory limit investigation.
-  - Scene Management, UI, Networking, Audio, Physics, Animation, Asset Pipeline
+  - Scene Management, UI, Audio, Physics, Animation, Asset Pipeline, Networking
 
 #### Memory-Coupled Features
 

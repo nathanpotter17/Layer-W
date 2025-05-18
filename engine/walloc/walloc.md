@@ -20,34 +20,6 @@ Walloc is a custom memory allocator implemented in Rust for WebAssembly applicat
   for sharing data between host and Wasm.
 - The WebAssembly module starts with a certain number of memory pages by default. Emscripten's default is 16 pages. This initial allocation is determined by EMCC or the Rust/WebAssembly compiler toolchain based on the static requirements of the program, with some extra space allocated for the heap.
 
-## Review: Ownership Model
-
-- Independent Reference Counting: Each arena (Render, Scene, Entity) has its own Arc<Mutex<>>, meaning its lifetime is managed independently.
-- No Hierarchical Ownership: When a SceneContext is dropped, it doesn't automatically drop the EntityContext objects created from it. Each has its own separate reference count.
-- Manual Reset Required: Without nested lifetimes, you need to explicitly call reset_tier() to clear a tier - dropping a SceneContext doesn't automatically reset its arena.
-
-- This approach gives you more flexibility but less automatic cleanup.
-  - Each arrow represents an Arc reference, and when all references to an arena are gone, the Arc is dropped, but the memory isn't reclaimed until you explicitly reset the arena.
-  - ```
-    Scene ------> has reference to ----> Scene Arena
-          |
-          +--> creates --> Entity A ------> has reference to ----> Entity Arena
-          |
-          +--> creates --> Entity B ------> has reference to ----> Entity Arena
-    ```
-
-## Advanced Considerations
-
-### Graduated Migration
-
-- Some objects might start in the bottom tier but need to be "promoted"
-- Implement a mechanism to copy objects to higher tiers when needed
-
-### Size Tuning
-
-- Different scene types will have different optimal arena sizes
-- Consider making these configurable or self-adjusting
-
 ## Technical Details
 
 - The allocator manages WebAssembly memory pages (64KB chunks) and provides a familiar malloc/free interface. It includes mechanisms for safely transferring data between JavaScript and WebAssembly memory spaces via typed arrays, with built-in bounds checking for memory safety.
@@ -114,3 +86,51 @@ Walloc is a custom memory allocator implemented in Rust for WebAssembly applicat
               - Memory pages are 64KB each
               - The allocator automatically grows memory when needed
               - Proper memory alignment ensures optimal performance for GPU access
+
+## Review: Ownership Model
+
+- Independent Reference Counting: Each arena (Render, Scene, Entity) has its own Arc<Mutex<>>, meaning its lifetime is managed independently.
+- No Hierarchical Ownership: When a SceneContext is dropped, it doesn't automatically drop the EntityContext objects created from it. Each has its own separate reference count.
+- Manual Reset Required: Without nested lifetimes, you need to explicitly call reset_tier() to clear a tier - dropping a SceneContext doesn't automatically reset its arena.
+
+- This approach gives you more flexibility but less automatic cleanup.
+
+  - Each arrow represents an Arc reference, and when all references to an arena are gone, the Arc is dropped, but the memory isn't reclaimed until you explicitly reset the arena.
+  - ```
+    Scene ------> has reference to ----> Scene Arena
+          |
+          +--> creates --> Entity A ------> has reference to ----> Entity Arena
+          |
+          +--> creates --> Entity B ------> has reference to ----> Entity Arena
+    ```
+
+## Caching Considerations
+
+When implementing a producer-consumer system with caching:
+Problem: If you use a flag to indicate available memory and write to cache first, subsequent reads may retrieve stale data.
+Explanation: In a producer-consumer setup with caching:
+
+- The producer writes data to cache
+- The producer sets a flag to true indicating memory is available
+- The consumer checks the flag, sees it's true, and reads from cache
+- However, if memory was updated directly (bypassing cache), the cache becomes stale
+
+Solution: Always invalidate the cache before setting the availability flag. This ensures that:
+
+- The next read operation will fetch fresh data from memory
+- The consumer will always see the most recent updates
+
+This prevents the race condition where cache contains outdated information while the flag indicates data is ready.
+This technique is called "polling" or "scheduled polling" and is common in page based memory allocators.
+
+## Advanced Considerations
+
+### Graduated Migration
+
+- Some objects might start in the bottom tier but need to be "promoted"
+- Implement a mechanism to copy objects to higher tiers when needed
+
+### Size Tuning
+
+- Different scene types will have different optimal arena sizes
+- Consider making these configurable or self-adjusting

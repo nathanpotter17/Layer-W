@@ -110,6 +110,7 @@
 - [The Complete WebAssembly Story & Modern WASM - Art of the Terminal](https://www.youtube.com/watch?v=Wxw-YAGYHDc)
 - [WASM I/O Youtube](https://www.youtube.com/@wasmio)
 - [WASI & Component Model](https://www.youtube.com/watch?v=mkkYNw8gTQg)
+- [Using WASM Compiler on the Frontend](https://www.youtube.com/watch?v=BD46Yv7ywvc)
 - [State of WASM 2025, WASM Component Model](https://www.youtube.com/watch?v=KK0FKiQ7nis)
 - [What are Lifetimes Anyway?](https://www.youtube.com/watch?v=gRAVZv7V91Q)
 - [Data & Memory Design in Rust](https://www.youtube.com/watch?v=7_o-YRxf_cc)

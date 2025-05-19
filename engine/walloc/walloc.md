@@ -30,7 +30,9 @@ Walloc is a custom memory allocator implemented in Rust for WebAssembly applicat
 
 - Walloc Allocator
 
-  - Core Walloc is only 1.125MB (Default Only) (18 Pages)
+  - Walloc's WASM Binary is only 0.024MB
+  - Walloc's JS Glue Code is 0.015MB
+  - Walloc's Startup Runtime Memory is 1.125MB (Default, Reserved) (~18 Pages)
 
     - This initial memory allocation includes:
 

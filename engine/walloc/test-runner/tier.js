@@ -40,30 +40,13 @@ async function initWasm() {
   }
 }
 
-function showTierStats() {
-  const stats = allocator.memory_stats();
-  log('Memory stats:');
-
-  if (stats.tiers) {
-    stats.tiers.forEach((tier) => {
-      log(
-        `${tier.name} tier: ${(tier.used / 1024).toFixed(2)}KB / ${(
-          tier.capacity / 1024
-        ).toFixed(2)}KB (${tier.percentage.toFixed(2)}%)`
-      );
-    });
-  }
-}
-
 // Allocate the ones the only need to be called once per scene.
 function runStartTest() {
   // Allocate 100 entities of 1MB each - ~0.1GB per scene. Entities culled in and out.
-  if (frameCount % 30 === 0) {
-    log('Managing Entities');
+  log('Managing Entities');
 
-    for (let i = 0; i < 100; i++) {
-      allocator.allocate_tiered(1 * MB, TIER.ENTITY);
-    }
+  for (let i = 0; i < 100; i++) {
+    allocator.allocate_tiered(1 * MB, TIER.ENTITY);
   }
 
   // Simulate loading the scene's textures.
@@ -114,7 +97,7 @@ function runTest() {
     log(`Allocated ${renderSize / MB}MB in RENDER tier`, renderOffset);
   }
 
-  // 2. Test SCENE tier - allocate 3 different texture sizes every 30 frames - ~5.5MB every 60 frames
+  // 2. Test SCENE tier - allocate 3 different texture sizes every 60 frames - ~5.5MB every 60 frames
   if (frameCount % 60 === 0) {
     // Small texture (256x256 RGBA = 262KB)
     const smallTexture = 256 * 256 * 4;
@@ -133,11 +116,6 @@ function runTest() {
         `Allocated 3 textures in SCENE tier: 256KB, 1MB, and 4MB. ${smallOffset} ${mediumOffset} ${largeOffset}`
       );
     }
-  }
-
-  //Show stats
-  if (shouldLog) {
-    showTierStats();
   }
 
   // Continue the loop
@@ -174,10 +152,28 @@ function updateMemoryDisplay() {
     if (memoryStatsDisplay) {
       memoryStatsDisplay.textContent = `Total Memory: ${(
         stats.totalSize / MB
+      ).toFixed(
+        4
+      )} MB\n \nTier 1 - Render System \nUtilization: ${stats.tiers[0].percentage.toFixed(
+        2
+      )}% \nBytes Used: ${stats.tiers[0].used / MB} MB \nTotal Capacity: ${(
+        stats.tiers[0].capacity / MB
+      ).toFixed(
+        2
+      )} MB \n\nTier 2 - Scene System \nUtilization: ${stats.tiers[1].percentage.toFixed(
+        2
+      )}% \nBytes Used: ${stats.tiers[1].used / MB} MB \nTotal Capacity: ${(
+        stats.tiers[1].capacity / MB
+      ).toFixed(
+        2
+      )} MB \n\nTier 3 - Entity System \nUtilization: ${stats.tiers[2].percentage.toFixed(
+        2
+      )}% \nBytes Used: ${stats.tiers[2].used / MB} MB \nTotal Capacity: ${(
+        stats.tiers[2].capacity / MB
       ).toFixed(2)} MB`;
     }
   }
-  setTimeout(updateMemoryDisplay, 1000);
+  setTimeout(updateMemoryDisplay, 300);
 }
 
 // Start updating the memory display when the DOM is loaded

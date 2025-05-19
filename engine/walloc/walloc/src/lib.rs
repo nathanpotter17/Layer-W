@@ -522,6 +522,10 @@ impl Walloc {
             AllocatorStrategy::Tiered(allocator) => {
                 allocator.allocate(size, tier)
             },
+            AllocatorStrategy::Default(allocator) => {
+                // Fallback to regular allocation
+                allocator.malloc(size)
+            },
         };
 
         self.memory_size = core::arch::wasm32::memory_size(0) * 65536;
@@ -594,6 +598,9 @@ impl Walloc {
         let ptr = match &mut self.strategy {
             AllocatorStrategy::Default(allocator) => {
                 allocator.malloc(size)
+            },
+            AllocatorStrategy::Tiered(allocator) => {
+                allocator.allocate(size, Tier::Entity)
             },
         };
 

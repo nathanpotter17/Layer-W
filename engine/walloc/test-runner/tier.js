@@ -44,8 +44,8 @@ async function initWasm() {
 // Simulate start-up.
 function runStartTest() {
   log('Managing Entities');
-  const objOffset = allocator.allocate_tiered(100 * MB, TIER.ENTITY);
-  log(`Allocated 100MB in Entity tier ${objOffset}`);
+  const objOffset = allocator.allocate_tiered(10 * MB, TIER.ENTITY);
+  log(`Allocated 10MB in Entity tier ${objOffset}`);
 
   log('Renderer Starting Up...');
   const renderSize = 3 * MB;
@@ -69,7 +69,7 @@ function runStartTest() {
   const hugeOffset = allocator.allocate_tiered(hugeTexture, TIER.SCENE);
 
   log(
-    `Allocated 3 textures in SCENE tier: 256KB, 1MB, and 4MB. ${smallOffset} ${mediumOffset} ${largeOffset} ${hugeOffset}`
+    `Allocated 3 textures in SCENE tier: 256KB, 1MB, 4MB, and 8MB. ${smallOffset} ${mediumOffset} ${largeOffset} ${hugeOffset}`
   );
 
   log('Scene Loaded.');
@@ -97,7 +97,7 @@ function runTest() {
   const renderSize = 3 * MB;
   const renderOffset = allocator.allocate_tiered(renderSize, TIER.RENDER);
   if (shouldLog) {
-    log(`Allocated ${renderSize / MB}MB in RENDER tier`, renderOffset);
+    log(`Allocated ${renderSize / MB}MB in RENDER tier ${renderOffset}`);
   }
 
   // 2. Test SCENE tier - allocate 3 different texture sizes every 60 frames - ~5.5MB every 60 frames

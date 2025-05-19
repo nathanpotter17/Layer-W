@@ -772,10 +772,11 @@ impl Walloc {
                         &JsValue::from_f64(capacity as f64)
                     ).unwrap();
                     
+                    const tcb: f64 = 4.0 * 1024.0 * 1024.0 * 1024.0; // 4GB in bytes
                     js_sys::Reflect::set(
                         &tier_obj,
                         &JsValue::from_str("percentage"),
-                        &JsValue::from_f64((used as f64 / capacity as f64) * 100.0)
+                        &JsValue::from_f64((used as f64 / tcb) * 100.0)
                     ).unwrap();
                     
                     tiers.push(&tier_obj);

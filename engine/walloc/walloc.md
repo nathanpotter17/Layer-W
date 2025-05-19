@@ -24,7 +24,8 @@ Walloc is a custom memory allocator implemented in Rust for WebAssembly applicat
 
 - The allocator manages WebAssembly memory pages (64KB chunks) and provides a familiar malloc/free interface. It includes mechanisms for safely transferring data between JavaScript and WebAssembly memory spaces via typed arrays, with built-in bounds checking for memory safety.
 - Rust is the perfect language to implement this because of its ownership and scope models help prevent unsafe memory patterns, and a lot of the built in memory functions for Rust are safe wrappers of C instructions.
-- This component forms the foundation layer of a 3D rendering engine, enabling optimized memory patterns for graphics data like geometry buffers, textures, and scene graph information, with a focus on supporting LOD (Level of Detail) streaming and efficient memory reuse.
+- This component forms the foundation layer of a 3D rendering engine, enabling optimized memory patterns for graphics data like geometry buffers, textures, and scene graph information, with a focus on supporting safe and efficient memory reuse.
+- To allow for a smooth memory usage experience, the TieredAllocator doesnt auto-rebalance its memory, although it does start with a defined reserved space, where the render tier takes 50%, the scene tier takes 30%, and the entity tier takes the final 20%. The limits are up to the implementor though, each tier is allowed to grow to the maximum available memory for scene flexibility.
 
 ## Technical Specs
 

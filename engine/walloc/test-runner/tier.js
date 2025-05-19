@@ -18,7 +18,6 @@ function log(message) {
   }
 }
 
-// Initialize Allocator
 async function initWasm() {
   try {
     await init();
@@ -42,15 +41,12 @@ async function initWasm() {
   }
 }
 
-// Allocate the ones the only need to be called once per scene.
+// Simulate start-up.
 function runStartTest() {
-  // Allocate 100 entities of 1MB each - ~0.1GB per scene. Entities culled in and out.
   log('Managing Entities');
+  const objOffset = allocator.allocate_tiered(100 * MB, TIER.ENTITY);
+  log(`Allocated 100MB in Entity tier ${objOffset}`);
 
-  const objOffset = allocator.allocate_tiered(0.15 * MB, TIER.ENTITY);
-  log(`Entities added ${objOffset}`);
-
-  // Simulate loading the scene's textures.
   log('Renderer Starting Up...');
   const renderSize = 3 * MB;
   const renderOffset = allocator.allocate_tiered(renderSize, TIER.RENDER);
@@ -64,29 +60,30 @@ function runStartTest() {
   const mediumTexture = 512 * 512 * 4;
   const mediumOffset = allocator.allocate_tiered(mediumTexture, TIER.SCENE);
 
-  // Large texture (1024x1024 RGBA = 4MB)
+  // 1k texture (1024x1024 RGBA = 4MB)
   const largeTexture = 1024 * 1024 * 4;
   const largeOffset = allocator.allocate_tiered(largeTexture, TIER.SCENE);
 
+  // 2k texture - 8MB
+  const hugeTexture = 2048 * 2048 * 4;
+  const hugeOffset = allocator.allocate_tiered(hugeTexture, TIER.SCENE);
+
   log(
-    `Allocated 3 textures in SCENE tier: 256KB, 1MB, and 4MB. ${smallOffset} ${mediumOffset} ${largeOffset}`
+    `Allocated 3 textures in SCENE tier: 256KB, 1MB, and 4MB. ${smallOffset} ${mediumOffset} ${largeOffset} ${hugeOffset}`
   );
 
   log('Scene Loaded.');
 }
 
-// Simple test function that runs every frame
 function runTest() {
   frameCount++;
 
-  // Only log every 10 frames to avoid spam
   const shouldLog = frameCount % 10 === 0 || frameCount < 5;
   if (shouldLog) {
     log(`--- Frame ${frameCount} ---`);
   }
 
   // 1. Test RENDER tier - Allocate Every Frame - 1080 x 720 Frame - 4 channel, 32-bit color depth - ~2.97MB/frame
-
   // Clear image, this will flip the memory to become available.
   // The bump allocation is very fast - it's essentially just an atomic addition operation to advance a pointer.
   // The underlying code uses atomic operations to manage the offsets, which makes it thread-safe even in concurrent environments.
@@ -124,11 +121,9 @@ function runTest() {
     }
   }
 
-  // Continue the loop
   frameId = requestAnimationFrame(runTest);
 }
 
-// Start the simulation
 function startSimulation() {
   log('Starting simulation');
   if (!frameId) {
@@ -137,7 +132,6 @@ function startSimulation() {
   }
 }
 
-// Stop the simulation
 function stopSimulation() {
   if (frameId) {
     cancelAnimationFrame(frameId);
@@ -146,10 +140,8 @@ function stopSimulation() {
   }
 }
 
-// Initialize everything
 initWasm();
 
-// Update memory stats display
 function updateMemoryDisplay() {
   if (allocator) {
     const stats = allocator.memory_stats();
@@ -181,7 +173,6 @@ function updateMemoryDisplay() {
   setTimeout(updateMemoryDisplay, 300);
 }
 
-// Start updating the memory display when the DOM is loaded
 if (typeof document !== 'undefined') {
   document.addEventListener('DOMContentLoaded', updateMemoryDisplay);
 }

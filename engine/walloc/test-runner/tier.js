@@ -35,6 +35,8 @@ async function initWasm() {
     if (stopBtn) stopBtn.addEventListener('click', stopSimulation);
 
     log('Ready! Click "Start Simulation" to begin');
+
+    runStartTest();
   } catch (error) {
     log(`Error: ${error}`);
   }
@@ -49,6 +51,10 @@ function runStartTest() {
   log(`Entities added ${objOffset}`);
 
   // Simulate loading the scene's textures.
+  log('Renderer Starting Up...');
+  const renderSize = 3 * MB;
+  const renderOffset = allocator.allocate_tiered(renderSize, TIER.RENDER);
+  log(`Allocated ${renderSize / MB}MB in RENDER tier ${renderOffset}`);
 
   // Small texture (256x256 RGBA = 262KB)
   const smallTexture = 256 * 256 * 4;
@@ -125,7 +131,6 @@ function runTest() {
 // Start the simulation
 function startSimulation() {
   log('Starting simulation');
-  runStartTest();
   if (!frameId) {
     frameCount = 0;
     frameId = requestAnimationFrame(runTest);

@@ -530,9 +530,7 @@ impl Walloc {
     // Create a new Walloc with TieredAllocator
     #[wasm_bindgen]
     pub fn new_tiered() -> Self {
-        let memory_base = unsafe { 
-            core::arch::wasm32::memory_size(0) as *mut u8
-        };
+        let memory_base = core::arch::wasm32::memory_size(0) as *mut u8;
         let memory_size = (core::arch::wasm32::memory_size(0) * 65536) as usize;
         
         // Use TieredAllocator

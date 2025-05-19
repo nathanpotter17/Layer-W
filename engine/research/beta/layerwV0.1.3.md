@@ -6,11 +6,7 @@
 
 - Purpose: Pathfinding for eventual performant, platform agnostic application solution using WebGPU & Rust + WASM / WASI.
 
-- Ethos: Simplicity is a pre-requisite for reliability, however, ignoring complexity for too long will slow things down, and focusing too much on the ease will lead to repeated code or refactoring. What matters the most is the complexity yielded for the user, not the complexity of the solution.
-  - Tenants
-    - More with Less
-    - Isogaba Maware
-    - Five S
+- Ethos: More with Less, Isogaba Maware, Five S.
 
 ### Layer-W Stack
 

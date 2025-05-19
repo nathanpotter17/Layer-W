@@ -6,7 +6,7 @@
 
 - Purpose: Pathfinding for eventual performant, platform agnostic application solution using WebGPU & Rust + WASM / WASI.
 
-- Ethos: Simplicity is a pre-requisite for reliability, however, ignoring complexity for too long will slow things down, and focusing too much on the ease will lead to repeated code or refactoring. What matters the most is the complexity yielded for the user, not the complexity of the solution.
+- Ethos: More with Less, Isogaba Maware, Five S.
 
 ### Layer-W Stack
 
@@ -101,6 +101,7 @@
 ### Guides
 
 - [Rust Wasm Book](https://rustwasm.github.io/docs/book/why-rust-and-webassembly.html)
+- [WGPU v25](https://github.com/gfx-rs/wgpu/tree/v25/examples)
 - [The Practical WASM Memory Guide](https://radu-matei.com/blog/practical-guide-to-wasm-memory/)
 - [WASM Components in Rust](https://component-model.bytecodealliance.org/language-support/rust.html)
 - [Building components in Rust](https://component-model.bytecodealliance.org/language-support/rust.html)

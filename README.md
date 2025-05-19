@@ -78,6 +78,7 @@
   - Walloc Submodule `v0.1.1`
 - 5/18/25 - [v0.1.4](/engine/research/beta/layerwV0.1.3.md) Beta Proposal Revision Three
   - Wwindow Submodule `v0.1.0`
+  - Walloc Submodule `v0.1.2`
 
 ### Release
 

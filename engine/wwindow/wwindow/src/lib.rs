@@ -26,6 +26,7 @@ pub struct State {
 impl State {
     pub async fn new(window: Arc<Window>) -> State {
         // Configure instance based on platform
+        
         cfg_if::cfg_if! {
             if #[cfg(target_arch = "wasm32")] {
                 let size = winit::dpi::PhysicalSize::new(1080, 720);
@@ -38,13 +39,11 @@ impl State {
                 let size = window.inner_size();
                 let instance = wgpu::Instance::default();
                 let limits = wgpu::Limits::default();
-
                 // Setup familiar web context on native. Meant to interface with Walloc module for runtime asset streaming.
                 #[cfg(not(target_arch = "wasm32"))]
                 let webview = {
                     use wry::WebViewBuilder;
-                    use winit::dpi::{LogicalPosition, LogicalSize};
-                    
+
                     let html_content = r#"
                     <!DOCTYPE html>
                     <html>
@@ -234,15 +233,6 @@ impl State {
         &self.window
     }
 
-    pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
-        if new_size.width > 0 && new_size.height > 0 {
-            self.size = new_size;
-            self.config.width = new_size.width;
-            self.config.height = new_size.height;
-            self.surface.configure(&self.device, &self.config);
-        }
-    }
-
     #[cfg(not(target_arch = "wasm32"))]
     pub fn execute_js(&self, js_code: &str) -> Result<(), String> {
         if let Some(webview) = &self.webview {
@@ -349,15 +339,24 @@ impl ApplicationHandler for App {
                 .create_window(
                     Window::default_attributes()
                         .with_title("Multiplatform Window")
+                        .with_inner_size(winit::dpi::PhysicalSize::new(1080, 720))
                 )
                 .unwrap(),
         );
+
+        window.set_min_inner_size(Some(winit::dpi::PhysicalSize::new(1080, 720)));
+        window.set_max_inner_size(Some(winit::dpi::PhysicalSize::new(1080, 720)));
+        
+        // Explicitly disable resizing
+        window.set_resizable(false);
         
         // Set up canvas for web target - Browser Only
         #[cfg(target_arch = "wasm32")]
         {
             use winit::platform::web::WindowExtWebSys;
             web_sys::console::log_1(&"Setting up web canvas".into());
+
+            let _ = window.request_inner_size(winit::dpi::PhysicalSize::new(1080, 720));
             
             if let Some(canvas) = window.canvas() {
                 let web_window = web_sys::window().unwrap();
@@ -366,6 +365,17 @@ impl ApplicationHandler for App {
                 // Try to get element by id "app" first, then fall back to body
                 let container = document.get_element_by_id("app")
                     .unwrap_or_else(|| document.body().unwrap().into());
+                
+                // Explicitly set the canvas dimensions
+                canvas.set_width(1080);
+                canvas.set_height(720);
+                
+                // Also set the style to enforce the dimensions in CSS
+                let style = canvas.style();
+                style.set_property("width", "1080px").unwrap();
+                style.set_property("height", "720px").unwrap();
+                style.set_property("max-width", "1080px").unwrap();
+                style.set_property("max-height", "720px").unwrap();
                 
                 container.append_child(&web_sys::Element::from(canvas))
                     .expect("Couldn't append canvas to document");
@@ -449,7 +459,6 @@ impl ApplicationHandler for App {
                             },
                             Err(wgpu::SurfaceError::Lost) => {
                                 web_sys::console::warn_1(&"Surface lost, reconfiguring...".into());
-                                state.resize(state.window().inner_size());
                             },
                             Err(wgpu::SurfaceError::OutOfMemory) => {
                                 web_sys::console::error_1(&"Out of memory, exiting".into());
@@ -468,11 +477,6 @@ impl ApplicationHandler for App {
                     
                     // Request another frame
                     window.request_redraw();
-                },
-                WindowEvent::Resized(size) => {
-                    if let Some(state) = &mut self.state {
-                        state.resize(size);
-                    }
                 },
                 WindowEvent::KeyboardInput { event, .. } => {
                     web_sys::console::log_1(&format!("Keyboard Event: {:?}", event).into());
@@ -504,16 +508,13 @@ impl ApplicationHandler for App {
                 WindowEvent::RedrawRequested => {
                     match state.render() {
                         Ok(_) => {},
-                        Err(wgpu::SurfaceError::Lost) => state.resize(state.window().inner_size()),
+                        Err(wgpu::SurfaceError::Lost) => println!("Surface lost..."),
                         Err(wgpu::SurfaceError::OutOfMemory) => event_loop.exit(),
                         Err(e) => log::error!("render error: {e:?}"),
                     }
                     
                     // Emits a new redraw request
                     state.window().request_redraw();
-                },
-                WindowEvent::Resized(physical_size) => {
-                    state.resize(physical_size);
                 },
                 WindowEvent::KeyboardInput { event, .. } => {
                     println!("Keyboard Event: {:?}", event);

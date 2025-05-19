@@ -329,8 +329,54 @@ impl TieredAllocator {
             entity_arena: Arc::new(Mutex::new(entity_arena)),
         }
     }
+
+    // Grow heap for a specific tier - exact allocation, no overhead
+    pub fn grow_heap(&mut self, size_needed: usize, tier: Tier) -> *mut u8 {
+        // Calculate how many WebAssembly pages we need (64KiB per page)
+        let pages_needed = (size_needed + 65535) / 65536;
+        
+        // Try to grow memory
+        let old_pages = core::arch::wasm32::memory_grow(0, pages_needed);
+        if old_pages == usize::MAX {
+            // Failed to grow memory - log failure
+            return std::ptr::null_mut();
+        }
+        
+        // We successfully grew the memory
+        let new_block_size = pages_needed * 65536;
+        
+        // Calculate the base address for the new memory
+        let new_memory_base = unsafe { 
+            (old_pages * 65536) as *mut u8 
+        };
+        
+        // Create a new arena for the specific tier
+        let new_arena = Arena::new(new_memory_base, new_block_size, tier);
+        
+        // Based on the tier, update or replace the corresponding arena
+        match tier {
+            Tier::Render => {
+                if let Ok(mut old_arena) = self.render_arena.lock() {
+                    *old_arena = new_arena;
+                }
+            },
+            Tier::Scene => {
+                if let Ok(mut old_arena) = self.scene_arena.lock() {
+                    *old_arena = new_arena;
+                }
+            },
+            Tier::Entity => {
+                if let Ok(mut old_arena) = self.entity_arena.lock() {
+                    *old_arena = new_arena;
+                }
+            },
+        }
+        
+        // Return a non-null pointer to indicate success
+        // The actual allocation will happen in the caller
+        new_memory_base
+    }
     
-    // Allocate memory from the specified tier and return a memory owner
     pub fn allocate_with_owner(&mut self, size: usize, tier: Tier) -> Option<(MemoryOwner, *mut u8)> {
         let arena = match tier {
             Tier::Render => &self.render_arena,
@@ -352,19 +398,48 @@ impl TieredAllocator {
             }
         }
         
-        // If the arena allocation failed, return None
+        // If the arena allocation failed, try to grow the heap
+        // First grow the heap
+        let ptr = self.grow_heap(size, tier);
+        
+        // If growth failed, return None
+        if ptr.is_null() {
+            return None;
+        }
+        
+        // Try allocation again with the newly expanded arena
+        let arena = match tier {
+            Tier::Render => &self.render_arena,
+            Tier::Scene => &self.scene_arena,
+            Tier::Entity => &self.entity_arena,
+        };
+        
+        // Try to allocate from the selected arena after growing
+        if let Ok(arena_lock) = arena.lock() {
+            if let Some((new_ptr, alloc_size)) = arena_lock.allocate(size) {
+                // Create a memory owner for this allocation
+                let offset = (new_ptr as usize) - (arena_lock.base as usize);
+                let owner = MemoryOwner {
+                    arena: Arc::clone(arena),
+                    allocations: vec![(offset, alloc_size)],
+                };
+                
+                return Some((owner, new_ptr));
+            }
+        }
+        
+        // If allocation still fails after growing, log and return None
         None
     }
     
     // Allocate memory from the specified tier (fallback to default allocator)
     pub fn allocate(&mut self, size: usize, tier: Tier) -> *mut u8 {
-        // First try to allocate with the tiered approach
         if let Some((_, ptr)) = self.allocate_with_owner(size, tier) {
             return ptr;
         }
         
-        // If that fails, fallback to the default allocator
-        self.fallback.malloc(size)
+        // If we get here, allocation failed even after trying to grow
+        std::ptr::null_mut()
     }
     
     // Free memory - this is a no-op for arena allocations

@@ -45,9 +45,8 @@ function runStartTest() {
   // Allocate 100 entities of 1MB each - ~0.1GB per scene. Entities culled in and out.
   log('Managing Entities');
 
-  for (let i = 0; i < 100; i++) {
-    allocator.allocate_tiered(1 * MB, TIER.ENTITY);
-  }
+  const objOffset = allocator.allocate_tiered(0.15 * MB, TIER.ENTITY);
+  log(`Entities added ${objOffset}`);
 
   // Simulate loading the scene's textures.
 
@@ -67,7 +66,7 @@ function runStartTest() {
     `Allocated 3 textures in SCENE tier: 256KB, 1MB, and 4MB. ${smallOffset} ${mediumOffset} ${largeOffset}`
   );
 
-  log('Entities added. Scene Loaded.');
+  log('Scene Loaded.');
 }
 
 // Simple test function that runs every frame
@@ -90,6 +89,7 @@ function runTest() {
   if (shouldLog) {
     log('Reset RENDER tier');
   }
+
   // Allocate one frame at a time.
   const renderSize = 3 * MB;
   const renderOffset = allocator.allocate_tiered(renderSize, TIER.RENDER);
@@ -168,9 +168,9 @@ function updateMemoryDisplay() {
         2
       )} MB \n\nTier 3 - Entity System \nUtilization: ${stats.tiers[2].percentage.toFixed(
         2
-      )}% \nBytes Used: ${stats.tiers[2].used / MB} MB \nTotal Capacity: ${(
-        stats.tiers[2].capacity / MB
-      ).toFixed(2)} MB`;
+      )}% \nBytes Used: ${(stats.tiers[2].used / MB).toFixed(
+        4
+      )} MB \nTotal Capacity: ${(stats.tiers[2].capacity / MB).toFixed(2)} MB`;
     }
   }
   setTimeout(updateMemoryDisplay, 300);

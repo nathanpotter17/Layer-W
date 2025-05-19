@@ -66,10 +66,6 @@ pub struct MemoryOwner {
 
 // TieredAllocator manages multiple arenas
 pub struct TieredAllocator {
-    // The fallback allocator for when arenas are full
-    fallback: DefaultAllocator,
-    
-    // Our three tiers of arenas
     render_arena: Arc<Mutex<Arena>>,
     scene_arena: Arc<Mutex<Arena>>,
     entity_arena: Arc<Mutex<Arena>>,
@@ -303,27 +299,21 @@ impl Arena {
 impl TieredAllocator {
     pub fn new(memory_base: *mut u8, memory_size: usize) -> Self {
         // Calculate sizes for each arena
-        // Render tier: 50% of memory, Scene tier: 30%, Entity tier: 15%, Default: 5%
+        // Render tier: 50% of memory, Scene tier: 30%, Entity tier: 20%
         let render_size = (memory_size * 50) / 100;
         let scene_size = (memory_size * 30) / 100;
-        let entity_size = (memory_size * 15) / 100;
-        let default_size = memory_size - render_size - scene_size - entity_size;
+        let entity_size = (memory_size * 20) / 100;
         
         // Create arenas
         let render_base = memory_base;
         let scene_base = unsafe { render_base.add(render_size) };
         let entity_base = unsafe { scene_base.add(scene_size) };
-        let default_base = unsafe { entity_base.add(entity_size) };
         
         let render_arena = Arena::new(render_base, render_size, Tier::Render);
         let scene_arena = Arena::new(scene_base, scene_size, Tier::Scene);
         let entity_arena = Arena::new(entity_base, entity_size, Tier::Entity);
         
-        // Create fallback allocator
-        let fallback = DefaultAllocator::new(default_base, default_size);
-        
         TieredAllocator {
-            fallback,
             render_arena: Arc::new(Mutex::new(render_arena)),
             scene_arena: Arc::new(Mutex::new(scene_arena)),
             entity_arena: Arc::new(Mutex::new(entity_arena)),
@@ -428,7 +418,7 @@ impl TieredAllocator {
             }
         }
         
-        // If allocation still fails after growing, log and return None
+        // If allocation still fails after growing, return None, we're out of memory.
         None
     }
     
@@ -440,20 +430,6 @@ impl TieredAllocator {
         
         // If we get here, allocation failed even after trying to grow
         std::ptr::null_mut()
-    }
-    
-    // Free memory - this is a no-op for arena allocations
-    // Only works for fallback allocations
-    pub fn free(&mut self, ptr: *mut u8) {
-        // Check which arena this pointer belongs to
-        if self.is_ptr_in_arena(ptr) {
-            // Do nothing for arena allocations - they're freed as a group
-            // or when the MemoryOwner is dropped
-            return;
-        }
-        
-        // Use fallback free for non-arena allocations
-        self.fallback.free(ptr);
     }
     
     // Check if pointer is in any arena
@@ -529,7 +505,7 @@ impl TieredAllocator {
     
     // Check if a pointer is valid
     pub fn is_ptr_valid(&self, ptr: *mut u8) -> bool {
-        self.is_ptr_in_arena(ptr) || self.fallback.is_ptr_in_heap(ptr)
+        self.is_ptr_in_arena(ptr)
     }
 }
 
@@ -592,15 +568,15 @@ impl Walloc {
             Some(t) => t,
             None => Tier::Entity, // Default to Entity tier if invalid
         };
-        
+
         let ptr = match &mut self.strategy {
             AllocatorStrategy::Tiered(allocator) => {
                 allocator.allocate(size, tier)
             },
-            AllocatorStrategy::Default(allocator) => {
-                // Fallback to regular allocation
-                allocator.malloc(size)
-            },
+            _ => {
+                // Return 0 for non-tiered allocators
+                return 0;
+            }
         };
 
         self.memory_size = core::arch::wasm32::memory_size(0) * 65536;
@@ -674,9 +650,9 @@ impl Walloc {
             AllocatorStrategy::Default(allocator) => {
                 allocator.malloc(size)
             },
-            AllocatorStrategy::Tiered(allocator) => {
-                allocator.allocate(size, Tier::Entity)
-            },
+            _ => {
+                return 0;
+            }
         };
 
         self.memory_size = core::arch::wasm32::memory_size(0) * 65536;
@@ -689,36 +665,28 @@ impl Walloc {
         }
     }
     
-    // Free previously allocated memory
+    // Free (Default Allocator Only, Tiered uses reset)
     #[wasm_bindgen]
     pub fn free(&mut self, offset: usize) {
         if offset == 0 {
-            return; // Null pointer, nothing to free
+            return;
         }
 
         let ptr = unsafe { self.memory_base.add(offset) };
 
-        // Check if pointer is valid
         let is_valid = match &self.strategy {
             AllocatorStrategy::Default(allocator) => {
                 allocator.is_ptr_in_heap(ptr)
             },
-            AllocatorStrategy::Tiered(allocator) => {
-                allocator.is_ptr_valid(ptr)
-            },
+            _ => false,
         };
         
         if !is_valid {
-            return; // out of bounds
+            return;
         }
         
-        match &mut self.strategy {
-            AllocatorStrategy::Default(allocator) => {
-                allocator.free(ptr);
-            },
-            AllocatorStrategy::Tiered(allocator) => {
-                allocator.free(ptr); // No-op for arena allocations
-            },
+        if let AllocatorStrategy::Default(allocator) = &mut self.strategy {
+            allocator.free(ptr);
         }
     }
     

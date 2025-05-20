@@ -12,6 +12,9 @@ use wasm_bindgen::prelude::*;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::JsCast;
 
+const DIMX: u32 = 1080;
+const DIMY: u32 = 720;
+
 pub struct State {
     surface: wgpu::Surface<'static>,
     device: wgpu::Device,
@@ -29,7 +32,7 @@ impl State {
         
         cfg_if::cfg_if! {
             if #[cfg(target_arch = "wasm32")] {
-                let size = winit::dpi::PhysicalSize::new(1080, 720);
+                let size = winit::dpi::PhysicalSize::new(DIMX, DIMY);
                 let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
                     backends: wgpu::Backends::BROWSER_WEBGPU,
                     ..Default::default()
@@ -295,6 +298,7 @@ struct StateInitializer {
     app_ptr: *mut App,
 }
 
+// Our Apps Initializer that asynchronously starts up, using wasm_bindgen_futures.
 #[cfg(target_arch = "wasm32")]
 impl StateInitializer {
     fn new(window: Arc<Window>, app: &mut App) -> Self {
@@ -323,6 +327,7 @@ impl StateInitializer {
     }
 }
 
+// Our App struct. Defines App state.
 #[derive(Default)]
 struct App {
     state: Option<State>,
@@ -331,6 +336,7 @@ struct App {
     state_initializing: bool,
 }
 
+// Application Handler. This is new required for winit + wgpu newest versions.
 impl ApplicationHandler for App {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         // Create window based on platform
@@ -339,13 +345,13 @@ impl ApplicationHandler for App {
                 .create_window(
                     Window::default_attributes()
                         .with_title("Multiplatform Window")
-                        .with_inner_size(winit::dpi::PhysicalSize::new(1080, 720))
+                        .with_inner_size(winit::dpi::PhysicalSize::new(DIMX, DIMY))
                 )
                 .unwrap(),
         );
 
-        window.set_min_inner_size(Some(winit::dpi::PhysicalSize::new(1080, 720)));
-        window.set_max_inner_size(Some(winit::dpi::PhysicalSize::new(1080, 720)));
+        window.set_min_inner_size(Some(winit::dpi::PhysicalSize::new(DIMX, DIMY)));
+        window.set_max_inner_size(Some(winit::dpi::PhysicalSize::new(DIMX, DIMY)));
         
         // Explicitly disable resizing
         window.set_resizable(false);
@@ -356,7 +362,7 @@ impl ApplicationHandler for App {
             use winit::platform::web::WindowExtWebSys;
             web_sys::console::log_1(&"Setting up web canvas".into());
 
-            let _ = window.request_inner_size(winit::dpi::PhysicalSize::new(1080, 720));
+            let _ = window.request_inner_size(winit::dpi::PhysicalSize::new(DIMX, DIMY));
             
             if let Some(canvas) = window.canvas() {
                 let web_window = web_sys::window().unwrap();
@@ -367,15 +373,15 @@ impl ApplicationHandler for App {
                     .unwrap_or_else(|| document.body().unwrap().into());
                 
                 // Explicitly set the canvas dimensions
-                canvas.set_width(1080);
-                canvas.set_height(720);
+                canvas.set_width(DIMX.into());
+                canvas.set_height(DIMY.into());
                 
                 // Also set the style to enforce the dimensions in CSS
                 let style = canvas.style();
-                style.set_property("width", "1080px").unwrap();
-                style.set_property("height", "720px").unwrap();
-                style.set_property("max-width", "1080px").unwrap();
-                style.set_property("max-height", "720px").unwrap();
+                style.set_property("width", &format!("{}px", DIMX)).unwrap();
+                style.set_property("height", &format!("{}px", DIMY)).unwrap();
+                style.set_property("max-width", &format!("{}px", DIMX)).unwrap();
+                style.set_property("max-height", &format!("{}px", DIMY)).unwrap();
                 
                 container.append_child(&web_sys::Element::from(canvas))
                     .expect("Couldn't append canvas to document");
@@ -404,7 +410,7 @@ impl ApplicationHandler for App {
 
             // Initialize webview on native platforms
             if let Some(state) = &self.state {
-                std::thread::sleep(std::time::Duration::from_millis(1000));
+                std::thread::sleep(std::time::Duration::from_millis(300));
 
                 match state.execute_js("console.log('Rust JS evaluation working'); 'Success'") {
                     Ok(_) => println!("Basic JavaScript executed successfully"),
@@ -412,7 +418,7 @@ impl ApplicationHandler for App {
                 }
                 
                 // Wait for WebView2 to be fully initialized
-                std::thread::sleep(std::time::Duration::from_millis(500));
+                std::thread::sleep(std::time::Duration::from_millis(300));
                 
                 match state.execute_js("window.sendMessage('Direct message test');") {
                     Ok(_) => println!("Direct IPC message sent"),
@@ -420,14 +426,6 @@ impl ApplicationHandler for App {
                 }
             }
 
-            window.request_redraw();
-        }
-    }
-
-    #[cfg(target_arch = "wasm32")]
-    fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
-        // Request redraw to keep animation going even during async initialization
-        if let Some(window) = &self.window {
             window.request_redraw();
         }
     }
@@ -469,7 +467,7 @@ impl ApplicationHandler for App {
                             },
                         }
                     } else if self.state_initializing {
-                        // If state is still initializing, just log and keep going
+                        // If state is still initializing, just log and keep going. Dont hang here
                         web_sys::console::log_1(&"State still initializing, skipping render".into());
                     } else {
                         web_sys::console::log_1(&"No state available for rendering".into());
@@ -512,8 +510,7 @@ impl ApplicationHandler for App {
                         Err(wgpu::SurfaceError::OutOfMemory) => event_loop.exit(),
                         Err(e) => log::error!("render error: {e:?}"),
                     }
-                    
-                    // Emits a new redraw request
+
                     state.window().request_redraw();
                 },
                 WindowEvent::KeyboardInput { event, .. } => {
@@ -527,6 +524,7 @@ impl ApplicationHandler for App {
     }
 }
 
+// Multi-platform run function
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen(start))]
 pub fn run() {
     cfg_if::cfg_if! {
@@ -541,7 +539,6 @@ pub fn run() {
     }
 
     let event_loop = EventLoop::new().unwrap();
-    
     // When the current loop iteration finishes, immediately begin a new
     // iteration regardless of whether or not new events are available to
     // process. Preferred for applications that want to render as fast as

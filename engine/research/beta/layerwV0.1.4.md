@@ -4,7 +4,7 @@
 
 - Overview: A tightly managed cross-platform application engine that maximizes performance through aggressive memory reuse and graphics-oriented memory layout. The reserved memory model balances rendering performance with necessary data persistence. Has the flexibility to render all content in a static SPA.
 
-- Purpose: Pathfinding for eventual performant, platform agnostic application solution using WebGPU & Rust + WASM / WASI.
+- Purpose: Pathfinding for performant, platform agnostic application solution using WebGPU & Rust + WASM / WASI.
 
 - Ethos: More with Less, Isogaba Maware, Five S.
 
@@ -12,17 +12,17 @@
 
 - Rust, Cargo, Bash, Winit, Wry, wgpu, wasm_bindgen, web_sys, js_sys, sdl2, Gamepad API, etc.
 
-### Layer-W Goals
+### Layer-W Features
 
-- Robust and Tuneable memory system, Mesh LOD / streaming based content system, integrated networking, multiplatform rendering, engine for A/AA Quality @ ~60FPS
+- Robust and Tuneable Memory System, Streaming based content system, Integrated networking, Multiplatform rendering, Application Engine for AA/AAA Quality @ ~60FPS
 
 ### Layer-W Limitations
 
-- Total Memory Limit is 4GB. Drawing system is limited to either OpenGL or WebGPU, the latter of which is still considered experimental. Fixed resolution TBD, but likely 1080 x 720. Max texture size is 1k, 2k maps used only on critical assets.
+- Total Memory Limit is 4GB. Fixed resolution 1080 x 720. Max texture size is 2k, high quality maps should only be used only on critical assets.
 
 ### Build System
 
-- Cargo, Bash, wasm-bindgen, wasm-pack, wasmtime, wasm32-unknown-unknown & / or wasm32-wasip1/p2, x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu.
+- Cargo, Bash, wasm-bindgen, wasm-opt, wasm-pack, wasmtime, wasm32-unknown-unknown & / or wasm32-wasip1/p2, x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu.
 
 ### Host Runtimes
 
@@ -37,7 +37,7 @@
 
 ### Core Innovation
 
-The ventilated memory model eliminates traditional allocation overhead by treating memory as a render-state machine rather than a general-purpose heap. Each frame "ventilates" the previous frame's allocations, creating a near zero-overhead streaming system perfectly suited for real-time 3D graphics abd ti. The engine also ships with first class networking support, allowing assets to be streamed into memory efficiently via web workers. Side car patterns are also leveraged for easier integrative support. Memory regions tied directly to their respective functionality.
+The ventilated memory model eliminates traditional allocation overhead by treating memory as a render-state machine rather than a general-purpose heap. Moreover, Memory regions tied directly to their respective functionality. Each frame "ventilates" the previous frame's allocations, creating a near zero-overhead streaming system perfectly suited for modern live service games with high quality graphics or enriched applications running on embedded devices or in isolated contexts. The engine also ships with first class networking support, allowing assets to be streamed into memory efficiently via web workers. Side car patterns are also leveraged for easier integrative support.
 
 ### Memory Architecture
 
@@ -51,9 +51,9 @@ Because the browser effectively has a compiler that we can make use of, extra wa
 
 #### Graphics Targets
 
-- Resolution: 1080x720 (Support for 1920x1080 coming)
+- Resolution: 1080x720 (Support for 1920x1080 TBD)
 - Target FPS: 60+
-- Quality: Near AAA-tier visuals
+- Quality: AA/AAA-tier
 - Platform: Web + Native
 
 #### Rendering System
@@ -70,13 +70,12 @@ Because the browser effectively has a compiler that we can make use of, extra wa
   - Surface Creation: Platform abstraction layer
 - Input Handling (Side Car / Event Forwarding): SDL2 for native, Gamepad API for web.
 
-### Completion Progress
+### Up Next
 
-- Completed
-  - winit basic input/event loop & windowing, walloc default & tiered allocators
-- Needs
-  - walloc cache system. Web Worker swarm, 4GB++ memory limit investigation.
-  - Scene Management, UI, Audio, Physics, Animation, Asset Pipeline
+- To Research: Walloc Cache System, Web Worker swarm - 4GB+ memory limit investigation.
+- Next Up: Scene Management, UI, Asset Pipeline, Audio, Physics, Animation.
+
+### Advanced Features
 
 #### Memory-Coupled Features
 

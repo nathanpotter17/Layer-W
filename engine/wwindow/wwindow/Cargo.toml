@@ -18,7 +18,6 @@ wgpu = "25.0.0"
 log = "0.4.20"
 cfg-if = "1.0"
 pollster = "0.3"
-js-sys = "0.3.77"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 wry = "0.51.2"
@@ -31,4 +30,11 @@ wasm-bindgen = "0.2"
 wasm-bindgen-futures = "0.4.30"
 console_error_panic_hook = "0.1.6"
 console_log = "1.0"
+js-sys = "0.3.77"
 web-sys = { version = "0.3", features = ["Document", "Window", "Element", "HtmlCanvasElement", "console"] }
+
+[profile.release]
+opt-level = 2
+lto = true
+strip = true
+codegen-units = 1

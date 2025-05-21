@@ -358,24 +358,217 @@ impl TieredAllocator {
         }
     }
 
-    // Fast compact for a specific tier
+    // Fast compact for a specific tier with intelligent growing
     pub fn fast_compact_tier(&mut self, tier: Tier, preserve_bytes: usize) -> bool {
-        match tier {
+        // Get current allocation and capacity for the specified tier
+        let (current_offset, capacity) = match tier {
             Tier::Render => {
                 if let Ok(arena) = self.render_arena.lock() {
-                    return arena.fast_compact(preserve_bytes);
+                    (arena.current_offset.load(Ordering::Relaxed), arena.capacity())
+                } else {
+                    return false;
                 }
             },
             Tier::Scene => {
                 if let Ok(arena) = self.scene_arena.lock() {
-                    return arena.fast_compact(preserve_bytes);
+                    (arena.current_offset.load(Ordering::Relaxed), arena.capacity())
+                } else {
+                    return false;
                 }
             },
             Tier::Entity => {
                 if let Ok(arena) = self.entity_arena.lock() {
-                    return arena.fast_compact(preserve_bytes);
+                    (arena.current_offset.load(Ordering::Relaxed), arena.capacity())
+                } else {
+                    return false;
                 }
             },
+        };
+        
+        // If we need more space than currently allocated
+        if preserve_bytes > current_offset {
+            // Check if the requested size exceeds our capacity
+            if preserve_bytes > capacity {
+                // We need to grow the heap, but first check if it's feasible
+                
+                // Get total WebAssembly memory size (can't exceed 4GB in wasm32)
+                let total_current_pages = core::arch::wasm32::memory_size(0);
+                let max_pages = 65536; // Max 4GB (65536 pages * 64KB per page)
+                
+                // Calculate how many more pages we need
+                let additional_bytes_needed = preserve_bytes - current_offset;
+                let additional_pages_needed = (additional_bytes_needed + 65535) / 65536;
+                
+                // Check if growing would exceed the 4GB limit
+                if total_current_pages + additional_pages_needed > max_pages {
+                    #[cfg(target_arch = "wasm32")]
+                    {
+                        use web_sys::console;
+                        web_sys::console::log_1(&format!(
+                            "Cannot grow memory - would exceed 4GB limit. Current pages: {}, needed: {}, max: {}",
+                            total_current_pages, additional_pages_needed, max_pages
+                        ).into());
+                    }
+                    return false;
+                }
+                
+                // Try to grow the heap
+                #[cfg(target_arch = "wasm32")]
+                {   
+                    use web_sys::console;
+                    web_sys::console::log_1(&format!(
+                        "Growing heap for tier {:?} compact - current: {}, preserve: {}, growing by: {} pages",
+                        tier, current_offset, preserve_bytes, additional_pages_needed
+                    ).into());
+                }
+                
+                // Create temporary storage to hold data we want to preserve
+                let preserve_data = if current_offset > 0 {
+                    // Get a reference to the arena to copy data from
+                    let arena_ref = match tier {
+                        Tier::Render => self.render_arena.clone(),
+                        Tier::Scene => self.scene_arena.clone(),
+                        Tier::Entity => self.entity_arena.clone(),
+                    };
+                    
+                    // Copy the data we want to preserve
+                    if let Ok(arena) = arena_ref.lock() {
+                        // Only copy what's currently allocated (not what we'll grow to)
+                        let bytes_to_copy = current_offset.min(preserve_bytes);
+                        let mut data = Vec::with_capacity(bytes_to_copy);
+                        unsafe {
+                            std::ptr::copy_nonoverlapping(
+                                arena.base,
+                                data.as_mut_ptr(),
+                                bytes_to_copy
+                            );
+                            data.set_len(bytes_to_copy);
+                        }
+                        Some(data)
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                };
+                
+                // Grow the heap
+                let new_mem = self.grow_heap(additional_bytes_needed, tier);
+                if new_mem.is_null() {
+                    #[cfg(target_arch = "wasm32")]
+                    {   
+                        use web_sys::console;
+                        web_sys::console::log_1(&JsValue::from_str("Failed to grow memory for compact operation"));
+                    }
+                    return false;
+                }
+                
+                // Copy preserved data to the new arena if needed
+                if let Some(data) = preserve_data {
+                    match tier {
+                        Tier::Render => {
+                            if let Ok(arena) = self.render_arena.lock() {
+                                unsafe {
+                                    std::ptr::copy_nonoverlapping(
+                                        data.as_ptr(),
+                                        arena.base,
+                                        data.len()
+                                    );
+                                }
+                                // Set the current offset to include our preserved data
+                                arena.current_offset.store(data.len(), Ordering::SeqCst);
+                            }
+                        },
+                        Tier::Scene => {
+                            if let Ok(arena) = self.scene_arena.lock() {
+                                unsafe {
+                                    std::ptr::copy_nonoverlapping(
+                                        data.as_ptr(),
+                                        arena.base,
+                                        data.len()
+                                    );
+                                }
+                                arena.current_offset.store(data.len(), Ordering::SeqCst);
+                            }
+                        },
+                        Tier::Entity => {
+                            if let Ok(arena) = self.entity_arena.lock() {
+                                unsafe {
+                                    std::ptr::copy_nonoverlapping(
+                                        data.as_ptr(),
+                                        arena.base,
+                                        data.len()
+                                    );
+                                }
+                                arena.current_offset.store(data.len(), Ordering::SeqCst);
+                            }
+                        },
+                    }
+                }
+                
+                // Now ensure the offset is correctly set to preserve_bytes
+                match tier {
+                    Tier::Render => {
+                        if let Ok(arena) = self.render_arena.lock() {
+                            arena.current_offset.store(preserve_bytes, Ordering::SeqCst);
+                        }
+                    },
+                    Tier::Scene => {
+                        if let Ok(arena) = self.scene_arena.lock() {
+                            arena.current_offset.store(preserve_bytes, Ordering::SeqCst);
+                        }
+                    },
+                    Tier::Entity => {
+                        if let Ok(arena) = self.entity_arena.lock() {
+                            arena.current_offset.store(preserve_bytes, Ordering::SeqCst);
+                        }
+                    },
+                }
+                
+                return true; // Successfully grew and preserved
+            } else {
+                // We have enough capacity, just need to allocate up to preserve_bytes
+                match tier {
+                    Tier::Render => {
+                        if let Ok(arena) = self.render_arena.lock() {
+                            // Set the current offset to preserve_bytes
+                            arena.current_offset.store(preserve_bytes, Ordering::SeqCst);
+                            return true;
+                        }
+                    },
+                    Tier::Scene => {
+                        if let Ok(arena) = self.scene_arena.lock() {
+                            arena.current_offset.store(preserve_bytes, Ordering::SeqCst);
+                            return true;
+                        }
+                    },
+                    Tier::Entity => {
+                        if let Ok(arena) = self.entity_arena.lock() {
+                            arena.current_offset.store(preserve_bytes, Ordering::SeqCst);
+                            return true;
+                        }
+                    },
+                }
+            }
+        } else {
+            // Current allocation is sufficient, proceed with normal compact
+            match tier {
+                Tier::Render => {
+                    if let Ok(arena) = self.render_arena.lock() {
+                        return arena.fast_compact(preserve_bytes);
+                    }
+                },
+                Tier::Scene => {
+                    if let Ok(arena) = self.scene_arena.lock() {
+                        return arena.fast_compact(preserve_bytes);
+                    }
+                },
+                Tier::Entity => {
+                    if let Ok(arena) = self.entity_arena.lock() {
+                        return arena.fast_compact(preserve_bytes);
+                    }
+                },
+            }
         }
         
         false

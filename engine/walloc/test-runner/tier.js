@@ -129,36 +129,18 @@ function runTest() {
 
 // Simulate start-up with memory preservation
 function runInitTest() {
-  log('Loading new level...');
+  log('Loading new scene...');
 
-  // First, make sure tier is reset at startup
+  // First, make sure scene is reset at startup
   allocator.reset_tier(TIER.SCENE);
 
-  // Allocate persistent level data (10MB)
-  const levelDataOffset = allocator.allocate_tiered(10 * MB, TIER.SCENE);
-  log(`Loaded 10MB Level data in SCENE tier at offset ${levelDataOffset}`);
-
-  // Allocate some important textures that should persist
-  log('Loading essential textures...');
-
-  // Small texture (256x256 RGBA = 262KB)
-  const smallTexture = 256 * 256 * 4;
-  const smallOffset = allocator.allocate_tiered(smallTexture, TIER.SCENE);
-
-  // Medium texture (512x512 RGBA = 1MB)
-  const mediumTexture = 512 * 512 * 4;
-  const mediumOffset = allocator.allocate_tiered(mediumTexture, TIER.SCENE);
-
-  // 1k texture (1024x1024 RGBA = 4MB)
-  const largeTexture = 1024 * 1024 * 4;
-  const largeOffset = allocator.allocate_tiered(largeTexture, TIER.SCENE);
-
-  // Calculate total persistent data size (level + textures)
-  const persistentDataSize =
-    10 * MB + smallTexture + mediumTexture + largeTexture;
+  // Simulate loading all the scene data into the main buffer, in one big chunk.
+  const persistentDataSize = 74 * MB;
   const persistentDataSizeMB = (persistentDataSize / MB).toFixed(2);
-
-  log(`Total persistent data allocated: ${persistentDataSizeMB}MB`);
+  const largeOffset = allocator.allocate_tiered(persistentDataSize, TIER.SCENE);
+  log(
+    `Total persistent data allocated: ${persistentDataSizeMB}MB, ${largeOffset}`
+  );
 
   // Initialize render resources
   log('Renderer starting up for 1080p resolution...');
@@ -188,10 +170,9 @@ function runFrameTest() {
   if (shouldLog) {
     log('Reset RENDER tier');
   }
-
   // Allocate one frame at a time
   const renderSize = 3 * MB;
-  const renderOffset = allocator.allocate_tiered(renderSize, TIER.RENDER);
+  allocator.allocate_tiered(renderSize, TIER.RENDER);
 
   // 2. ENTITY tier - particles, effects, etc.
   // Reset entity tier every 10 frames
@@ -201,7 +182,6 @@ function runFrameTest() {
       log('Reset ENTITY tier for new effects');
     }
   }
-
   // Add some particles (10KB each)
   const particleSize = 10 * 1024;
   for (let i = 0; i < 5; i++) {
@@ -209,9 +189,10 @@ function runFrameTest() {
   }
 
   // 3. SCENE tier - using fast_compact_tier for recycling
-  // Approach: Every 60 frames, we'll recycle non-persistent memory while preserving essential data
+  // Approach: Every 60 frames, we'll recycle non-persistent memory while preserving essential data.
 
-  // Add temporary scene objects every frame
+  // Add temporary scene objects every frame, simulating continous particle or mesh based effects for instance.
+  // Could be cleaned up on an interval to mock an animation playing.
   const tempObjectSize = 50 * 1024; // 50KB per object
   const numObjects = 2; // Add 2 objects per frame (100KB)
 
@@ -222,32 +203,36 @@ function runFrameTest() {
   // Every 60 frames, use fast_compact_tier to preserve just the persistent data
   if (frameCount % 60 === 0) {
     // Use fast_compact_tier to preserve persistent data while recycling the rest
-    const persistentSize = window.persistentDataSize;
     const recycleResult = allocator.fast_compact_tier(
       TIER.SCENE,
-      persistentSize
+      window.persistentDataSize
     );
 
     if (shouldLog) {
       log(
         `RECYCLED SCENE memory with fast_compact_tier(${(
-          persistentSize / MB
+          window.persistentDataSize / MB
         ).toFixed(2)}MB)`
       );
       log(`After recycling: ${recycleResult}`);
     }
 
-    // Every 60 frames after recycling, add some new textures
-    // Small texture (256x256 RGBA = 262KB)
-    const smallTexture = 256 * 256 * 4;
+    // Every 60 frames after recycling, add some new textures. These are not persistent AT ALL!!!
+    // the only data that persists is represented by window.persistentDataSize.
+
+    // We wouldnt call the tiered allocation this way - each texture will overwrite the next.
+    // we would need to add to window.persistentDataSize during the game loop to affect these allocations.
+
+    // Small texture (1024x1024 RGBA = 4MB)
+    const smallTexture = 1024 * 1024 * 4;
     const smallOffset = allocator.allocate_tiered(smallTexture, TIER.SCENE);
 
-    // Medium texture (512x512 RGBA = 1MB)
-    const mediumTexture = 512 * 512 * 4;
+    // Medium texture (2048x2048 RGBA = 8MB)
+    const mediumTexture = 2048 * 2048 * 4;
     const mediumOffset = allocator.allocate_tiered(mediumTexture, TIER.SCENE);
 
-    // Large texture (1024x1024 RGBA = 4MB)
-    const largeTexture = 1024 * 1024 * 4;
+    // Large texture (4096x4096 RGBA = 16MB)
+    const largeTexture = 4096 * 4096 * 4;
     const largeOffset = allocator.allocate_tiered(largeTexture, TIER.SCENE);
 
     if (shouldLog) {
@@ -283,40 +268,43 @@ function updateMemoryDisplay() {
     const stats = allocator.memory_stats();
     const memoryStatsDisplay = document.getElementById('memory-stats');
     if (memoryStatsDisplay) {
-      const MB = 1024 * 1024;
       memoryStatsDisplay.textContent = `Total Memory: ${(
         stats.totalSize / MB
-      ).toFixed(4)} MB\n \nTier 1 - Render System \nBytes Used: ${
+      ).toFixed(3)} MB\nMemory Utilization: ${stats.memoryUtilization.toFixed(
+        3
+      )}% \nTotal Memory Available: ${(stats.rawMemorySize / MB).toFixed(
+        3
+      )} MB \n\nTier 1 - Render System \nBytes Used: ${
         stats.tiers[0].used / MB
       } MB \nTotal Capacity: ${(stats.tiers[0].capacity / MB).toFixed(
-        2
+        3
       )} MB \nHigh Water Mark: ${(stats.tiers[0].highWaterMark / MB).toFixed(
-        4
+        3
       )} MB\nTotal Allocated: ${(stats.tiers[0].totalAllocated / MB).toFixed(
-        4
+        3
       )} MB\nMemory Saved: ${((stats.tiers[0].memorySaved || 0) / MB).toFixed(
-        4
+        3
       )} MB\n\nTier 2 - Scene System \nBytes Used: ${
         stats.tiers[1].used / MB
       } MB \nTotal Capacity: ${(stats.tiers[1].capacity / MB).toFixed(
-        2
+        3
       )} MB \nHigh Water Mark: ${(stats.tiers[1].highWaterMark / MB).toFixed(
-        4
+        3
       )} MB\nTotal Allocated: ${(stats.tiers[1].totalAllocated / MB).toFixed(
-        4
+        3
       )} MB\nMemory Saved: ${((stats.tiers[1].memorySaved || 0) / MB).toFixed(
-        4
+        3
       )} MB\n\nTier 3 - Entity System \nBytes Used: ${(
         stats.tiers[2].used / MB
-      ).toFixed(4)} MB \nTotal Capacity: ${(
+      ).toFixed(3)} MB \nTotal Capacity: ${(
         stats.tiers[2].capacity / MB
-      ).toFixed(2)} MB \nHigh Water Mark: ${(
+      ).toFixed(3)} MB \nHigh Water Mark: ${(
         stats.tiers[2].highWaterMark / MB
-      ).toFixed(4)} MB\nTotal Allocated: ${(
+      ).toFixed(3)} MB\nTotal Allocated: ${(
         stats.tiers[2].totalAllocated / MB
-      ).toFixed(4)} MB\nMemory Saved: ${(
+      ).toFixed(3)} MB\nMemory Saved: ${(
         (stats.tiers[2].memorySaved || 0) / MB
-      ).toFixed(4)} MB`;
+      ).toFixed(3)} MB`;
     }
   }
   setTimeout(updateMemoryDisplay, 300);

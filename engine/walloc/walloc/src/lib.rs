@@ -309,6 +309,9 @@ impl Arena {
     }
 
     // Fast compact operation that preserves the first 'preserve_bytes' of memory
+    // Note: This will return false if preserve_bytes > current_offset.
+    // The TieredAllocator::fast_compact_tier handles the case of growing
+    // memory when needed before calling this method.
     pub fn fast_compact(&self, preserve_bytes: usize) -> bool {
         // Ensure we don't preserve more than our current offset
         let current = self.current_offset.load(Ordering::Relaxed);

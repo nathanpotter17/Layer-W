@@ -2,11 +2,11 @@
 
 ## Layer-W Proposal
 
-[Latest Proposal (v0.1.5)](./engine/research/beta/layerwV0.1.4.md)
+[Latest Proposal (v0.1.5)](/engine/research/beta/layerwV0.1.4.md)
 
 ## Memory Architecture
 
-[Memory Module - Walloc](../../walloc/walloc.md)
+[Memory Module - Walloc](/engine/walloc/walloc.md)
 
 ## Development Status
 

@@ -1,4 +1,4 @@
-# Layer-W - Near-Native Web Execution Layer for Games & Applications
+# Layer-W - Lightweight web-first application framework, written in Rust.
 
 ## Layer-W Proposal
 

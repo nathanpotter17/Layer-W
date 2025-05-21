@@ -115,10 +115,8 @@ impl State {
             }
         }
 
-        // Create surface using the instance
         let surface = instance.create_surface(window.clone()).expect("Failed to create surface");
 
-       // Request the Best GPU adapter
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
                 power_preference: wgpu::PowerPreference::HighPerformance,
@@ -170,9 +168,7 @@ impl State {
                 if (navigator.gpu) {
                     console.log("WebGPU is supported");
                     console.log("Hardware concurrency: " + navigator.hardwareConcurrency);
-                    
-                    console.log("Attempting to enumerate all available GPUs:");
-                    
+
                     navigator.gpu.requestAdapter().then((adapter) => {
                         if (adapter) {
                             console.log(`Adapter: ${adapter.info.vendor} ${adapter.info.architecture} ${adapter.info.device} (${adapter.info.description})`);
@@ -189,7 +185,6 @@ impl State {
             }
         }
 
-        // Create device with proper limits
         let (device, queue) = adapter
             .request_device(
                 &wgpu::DeviceDescriptor {
@@ -203,7 +198,6 @@ impl State {
             .await
             .expect("Failed to create device");
 
-        // Configure surface
         let caps = surface.get_capabilities(&adapter);
         let surface_format = caps.formats[0];
         
@@ -352,8 +346,6 @@ impl ApplicationHandler for App {
 
         window.set_min_inner_size(Some(winit::dpi::PhysicalSize::new(DIMX, DIMY)));
         window.set_max_inner_size(Some(winit::dpi::PhysicalSize::new(DIMX, DIMY)));
-        
-        // Explicitly disable resizing
         window.set_resizable(false);
         
         // Set up canvas for web target - Browser Only
@@ -401,7 +393,7 @@ impl ApplicationHandler for App {
             return;
         }
         
-        // Native platform initialization (using pollster is safe for native)
+        // Native platform initialization
         #[cfg(not(target_arch = "wasm32"))]
         {
             let state = pollster::block_on(State::new(window.clone()));

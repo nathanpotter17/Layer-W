@@ -31,17 +31,13 @@ build_wasm32() {
     read -r use_bindgen
     use_bindgen=${use_bindgen:-Y}
 
-    echo -e "\nWould you like to run code optimizations? [Y/n]:"
-    read -r use_opts
-    use_opts=${use_opts:-Y}
-
     if [[ "$use_bindgen" =~ ^[Yy]$ ]]; then
         echo -e "Using wasm-bindgen for the build...\n"
         wasm-bindgen target/wasm32-unknown-unknown/release/wwindow.wasm --out-dir ./wbg --target web
-        if [[ "$use_opts" =~ ^[Yy]$ ]]; then
-            echo -e "Using wasm-opt on wasm-bindgen build..."
-            wasm-opt -Oz ./wbg/wwindow_bg.wasm -o ./wbg/wwindow_bg.wasm
-        fi
+        
+        echo -e "Using wasm-opt on wasm-bindgen build..."
+        wasm-opt -Oz ./wbg/wwindow_bg.wasm -o ./wbg/wwindow_bg.wasm
+
         echo -e "Copying the Wasm Bindgen build to test-runner/wbg directory...\n"
         if [ ! -d "../test-runner/wbg" ]; then
             mkdir -p ../test-runner/wbg

@@ -1,6 +1,11 @@
 use wasm_bindgen::prelude::*;
 use std::sync::{Arc, Mutex, atomic::{AtomicUsize, Ordering}};
 
+// For Loading Asset Data
+use reqwest::Client;
+use wasm_bindgen_futures::JsFuture;
+use js_sys::{Promise, Uint8Array, Array};
+
 #[wasm_bindgen]
 pub struct Walloc {
     strategy: AllocatorStrategy,
@@ -13,7 +18,6 @@ pub enum AllocatorStrategy {
     Tiered(TieredAllocator),
 }
 
-// Memory block header structure
 #[repr(C)]
 struct BlockHeader {
     size: usize,
@@ -22,7 +26,6 @@ struct BlockHeader {
     tier: u8,
 }
 
-// Available tiers in our hierarchy
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Tier {
     Render = 0,   // Top tier: Mesh data, render targets (frequent reallocation, cache-aligned)
@@ -41,14 +44,12 @@ impl Tier {
     }
 }
 
-// Base allocator implementation (same as your DefaultAllocator)
 pub struct DefaultAllocator {
     free_list_head: *mut BlockHeader,
     heap_start: *mut u8,
     heap_end: *mut u8,
 }
 
-// A single arena in our tiered system
 pub struct Arena {
     base: *mut u8,
     size: usize,
@@ -59,7 +60,6 @@ pub struct Arena {
     total_allocated: AtomicUsize,  // Track total bytes allocated, even when recycled
 }
 
-// Entity that owns memory in an arena
 pub struct MemoryOwner {
     // The arena this entity belongs to
     arena: Arc<Mutex<Arena>>,
@@ -67,7 +67,6 @@ pub struct MemoryOwner {
     allocations: Vec<(usize, usize)>,
 }
 
-// TieredAllocator manages multiple arenas
 pub struct TieredAllocator {
     render_arena: Arc<Mutex<Arena>>,
     scene_arena: Arc<Mutex<Arena>>,
@@ -839,6 +838,71 @@ impl TieredAllocator {
     // Check if a pointer is valid
     pub fn is_ptr_valid(&self, ptr: *mut u8) -> bool {
         self.is_ptr_in_arena(ptr)
+    }
+}
+
+pub enum AssetType {
+    Image = 0,
+    Json = 1,
+}
+
+struct AssetMetadata {
+    asset_type: AssetType,
+    size: usize,
+    offset: usize,
+}
+
+pub struct AssetManager {
+    allocator: Walloc<TieredAllocator>,
+    http_client: Client,
+    assets: Arc<Mutex<HashMap<String, AssetMetadata>>>,
+    base_url: String,
+}
+
+impl AssetManager {
+    pub fn new() -> Self {
+        let http_client = Client::new();
+        let t_alloc = Walloc::new_tiered();
+
+        AssetManager {
+            t_alloc,
+            http_client,
+            assets: Arc::new(Mutex::new(HashMap::new()))
+            base_url: base_url.unwrap_or_else(|| "".to_string()),
+        }
+    }
+
+    async fn print_json() -> Result<(), Box<dyn std::error::Error>> {
+        let resp = self.http_client.get("https://jsonplaceholder.typicode.com/todos/1")
+            .await?
+            .json::<HashMap<String, String>>()
+            .await?;
+        println!("{resp:#?}");
+        Ok(())
+    }
+
+    async fn load_asset(&self, url: String, asset_type: u8) -> Result<usize, JsValue> {
+         let asset_type = match asset_type {
+            0 => AssetType::Image,
+            1 => AssetType::Json,
+            _ => return Err(JsValue::from_str("Invalid asset type: must be 0 (Image) or 1 (Json)")),
+        };
+        
+        // Fetch the asset using reqwest
+        let response = self.http_client.get(&full_url)
+            .send()
+            .await
+            .map_err(|e| JsValue::from_str(&format!("Failed to fetch: {}", e)))?;
+            
+        let bytes = response.bytes()
+            .await
+            .map_err(|e| JsValue::from_str(&format!("Failed to get bytes: {}", e)))?;
+            
+        let data_size = bytes.len();
+        println!(&bytes.into())
+        println!(&data_size.into())
+
+        // To store in WASM memory: copy_to_js, allocate_tiered, or something custom?
     }
 }
 

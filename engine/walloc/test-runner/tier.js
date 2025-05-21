@@ -153,14 +153,37 @@ function runInitTest() {
   // Store the persistent data size globally for use in frame function
   window.persistentDataSize = persistentDataSize;
 
+  // Get memory stats after initialization
+  const initStats = allocator.memory_stats();
+  log('Initial memory usage:');
+  logMemoryStats(initStats);
+
   log('Startup complete. Beginning frame loop...');
+}
+
+// Helper function to log memory stats in a readable format
+function logMemoryStats(stats) {
+  const tierNames = ['Render', 'Scene', 'Entity'];
+
+  stats.tiers.forEach((tier, i) => {
+    const usedMB = (tier.used / MB).toFixed(2);
+    const capacityMB = (tier.capacity / MB).toFixed(2);
+    const utilizationPercent = ((tier.used / tier.capacity) * 100).toFixed(2);
+
+    log(
+      `${tierNames[i]} tier: ${usedMB}MB/${capacityMB}MB (${utilizationPercent}%)`
+    );
+  });
+
+  log(`Total memory utilization: ${stats.memoryUtilization.toFixed(2)}%`);
 }
 
 // Simulate frame updates with recycling
 function runFrameTest() {
   frameCount++;
 
-  const shouldLog = frameCount % 30 === 0 || frameCount < 5;
+  const shouldLog =
+    frameCount % 30 === 0 || frameCount < 5 || frameCount % 60 === 0;
   if (shouldLog) {
     log(`--- Frame ${frameCount} ---`);
   }
@@ -191,8 +214,7 @@ function runFrameTest() {
   // 3. SCENE tier - using fast_compact_tier for recycling
   // Approach: Every 60 frames, we'll recycle non-persistent memory while preserving essential data.
 
-  // Add temporary scene objects every frame, simulating continous particle or mesh based effects for instance.
-  // Could be cleaned up on an interval to mock an animation playing.
+  // Add temporary scene objects every frame, simulating continuous particle or mesh based effects
   const tempObjectSize = 50 * 1024; // 50KB per object
   const numObjects = 2; // Add 2 objects per frame (100KB)
 
@@ -202,27 +224,56 @@ function runFrameTest() {
 
   // Every 60 frames, use fast_compact_tier to preserve just the persistent data
   if (frameCount % 60 === 0) {
-    // Use fast_compact_tier to preserve persistent data while recycling the rest
-    const recycleResult = allocator.fast_compact_tier(
-      TIER.SCENE,
-      window.persistentDataSize
-    );
+    // Log memory stats before compaction
+    if (shouldLog) {
+      log('Memory stats before compaction:');
+      logMemoryStats(allocator.memory_stats());
+    }
+
+    // Test different preservation sizes to verify our improved compaction logic
+    // First regular case: preserve exactly what we initially set aside
+    let preserveSize = window.persistentDataSize;
+
+    // Every 180 frames, try preserving more than we currently have allocated
+    // to test the growth logic in our improved fast_compact_tier
+    if (frameCount % 180 === 0) {
+      // Try to preserve more than what's currently allocated
+      // This would have failed before our improvement, but should now work
+      preserveSize = window.persistentDataSize + 20 * MB;
+      log(
+        `TESTING LARGER PRESERVATION: Trying to preserve ${(
+          preserveSize / MB
+        ).toFixed(2)}MB`
+      );
+    }
+
+    // Use fast_compact_tier with our test size
+    const recycleResult = allocator.fast_compact_tier(TIER.SCENE, preserveSize);
 
     if (shouldLog) {
       log(
         `RECYCLED SCENE memory with fast_compact_tier(${(
-          window.persistentDataSize / MB
+          preserveSize / MB
         ).toFixed(2)}MB)`
       );
-      log(`After recycling: ${recycleResult}`);
+      log(`Compaction result: ${recycleResult ? 'SUCCESS' : 'FAILED'}`);
+
+      // If we were testing the larger preservation, and it worked, update our persistent size
+      if (frameCount % 180 === 0 && recycleResult) {
+        window.persistentDataSize = preserveSize;
+        log(
+          `Updated persistent data size to ${(
+            window.persistentDataSize / MB
+          ).toFixed(2)}MB`
+        );
+      }
+
+      // Log memory stats after compaction
+      log('Memory stats after compaction:');
+      logMemoryStats(allocator.memory_stats());
     }
 
-    // Every 60 frames after recycling, add some new textures. These are not persistent AT ALL!!!
-    // the only data that persists is represented by window.persistentDataSize.
-
-    // We wouldnt call the tiered allocation this way - each texture will overwrite the next.
-    // we would need to add to window.persistentDataSize during the game loop to affect these allocations.
-
+    // After recycling, add some new textures
     // Small texture (1024x1024 RGBA = 4MB)
     const smallTexture = 1024 * 1024 * 4;
     const smallOffset = allocator.allocate_tiered(smallTexture, TIER.SCENE);
@@ -237,8 +288,12 @@ function runFrameTest() {
 
     if (shouldLog) {
       log(
-        `Allocated 3 new textures in SCENE tier after recycling ${smallOffset} ${mediumOffset} ${largeOffset}`
+        `Allocated 3 new textures in SCENE tier after recycling: offsets ${smallOffset}, ${mediumOffset}, ${largeOffset}`
       );
+
+      // Log memory stats after new allocations
+      log('Memory stats after new allocations:');
+      logMemoryStats(allocator.memory_stats());
     }
   }
 

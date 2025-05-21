@@ -170,6 +170,12 @@ Efficient for WASM environments:
 - This allocator minimizes the need to grow memory by efficiently recycling existing pages
 - The high water mark tracking helps you optimize memory usage over time
 
+Tiered Reserve & Grow Behviour:
+
+- When asked for reservation that exceeds the available tier space, grow, but check if the grow is feasible within the max 4GB memory limit by looking at the preserved contents of the other tiers.
+- When a tier asks for reservation, but 4GB max has already been hit, Attempt to recycle memory in the appropriate tier, Try the allocation again with the newly reclaimed space,
+  & Only fail if recycling doesn't free enough space.
+
 ## Review: Ownership Model
 
 - Independent Reference Counting: Each arena (Render, Scene, Entity) has its own Arc<Mutex<>>, meaning its lifetime is managed independently.

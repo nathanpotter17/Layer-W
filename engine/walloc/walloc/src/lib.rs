@@ -676,13 +676,90 @@ impl TieredAllocator {
         None
     }
     
-    // Allocate memory from the specified tier (fallback to default allocator)
     pub fn allocate(&mut self, size: usize, tier: Tier) -> *mut u8 {
-        if let Some((_, ptr)) = self.allocate_with_owner(size, tier) {
-            return ptr;
+        // First attempt: try to allocate from the selected arena
+        let arena = match tier {
+            Tier::Render => &self.render_arena,
+            Tier::Scene => &self.scene_arena,
+            Tier::Entity => &self.entity_arena,
+        };
+        
+        if let Ok(arena_lock) = arena.lock() {
+            if let Some((ptr, _)) = arena_lock.allocate(size) {
+                return ptr; // Allocation succeeded
+            }
         }
         
-        // If we get here, allocation failed even after trying to grow
+        // First attempt failed - try to grow the heap
+        let ptr = self.grow_heap(size, tier);
+        
+        // If growth succeeded, try allocation again
+        if !ptr.is_null() {
+            let arena = match tier {
+                Tier::Render => &self.render_arena,
+                Tier::Scene => &self.scene_arena,
+                Tier::Entity => &self.entity_arena,
+            };
+            
+            if let Ok(arena_lock) = arena.lock() {
+                if let Some((new_ptr, _)) = arena_lock.allocate(size) {
+                    return new_ptr;
+                }
+            }
+        } else {
+            // Growth failed - try recycling and then allocating
+            
+            // Get current stats for this tier to determine how much we're using
+            let (current_usage, _, _, _) = match tier {
+                Tier::Render => {
+                    if let Ok(arena) = self.render_arena.lock() {
+                        arena.get_stats()
+                    } else {
+                        (0, 0, 0, 0)
+                    }
+                },
+                Tier::Scene => {
+                    if let Ok(arena) = self.scene_arena.lock() {
+                        arena.get_stats()
+                    } else {
+                        (0, 0, 0, 0)
+                    }
+                },
+                Tier::Entity => {
+                    if let Ok(arena) = self.entity_arena.lock() {
+                        arena.get_stats()
+                    } else {
+                        (0, 0, 0, 0)
+                    }
+                },
+            };
+            
+            // If we're using enough memory that recycling might help
+            if current_usage > size {
+                web_sys::console::log_1(&format!(
+                    "Growth failed, attempting to reset tier {:?} completely to make space",
+                    tier
+                ).into());
+                
+                // Reset this tier completely - clearer than preserving 0 bytes
+                self.reset_tier(tier);
+                
+                // Try allocation again after resetting
+                let arena = match tier {
+                    Tier::Render => &self.render_arena,
+                    Tier::Scene => &self.scene_arena,
+                    Tier::Entity => &self.entity_arena,
+                };
+                
+                if let Ok(arena_lock) = arena.lock() {
+                    if let Some((new_ptr, _)) = arena_lock.allocate(size) {
+                        return new_ptr; // Allocation succeeded after resetting
+                    }
+                }
+            }
+        }
+        
+        // If all attempts fail, return null
         std::ptr::null_mut()
     }
     

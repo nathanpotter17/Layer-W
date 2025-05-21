@@ -1,4 +1,4 @@
-# Layer-W - Lightweight web-first application framework, written in Rust.
+# LAYER-W - Lightweight web first application framework, written in Rust.
 
 ## Layer-W Proposal
 

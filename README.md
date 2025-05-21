@@ -51,7 +51,7 @@
 - 3/29/25 - [Cross Platform Rust + WASM](https://github.com/nathanpotter17/emcc-wasm/commit/1deca23d0ed2955ef7cf09dd879194030f33f6bf)
   - [PolyglotGPU - WebGPU in Three Languages](https://github.com/nathanpotter17/polyglot-gpu)
   - [Winit 0.29 + WGPU](https://github.com/nathanpotter17/emcc-wasm/tree/main/src/wasi/rust/wasm-wgpu)
-  - [Rust + wasm-bindgen + web_sys, js_sys](https://github.com/nathanpotter17/emcc-wasm/tree/main/src/wasi/rust/wasm-sys-bindgen)
+  - [Rust + wasm-bindgen + web_sys + js_sys](https://github.com/nathanpotter17/emcc-wasm/tree/main/src/wasi/rust/wasm-sys-bindgen)
   - [Rust + wasm-bindgen + event handled input](https://github.com/nathanpotter17/emcc-wasm/tree/main/src/wasi/rust/wasm-input)
 
 ### Alpha

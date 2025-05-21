@@ -1,16 +1,13 @@
-![img](./img/LayerW.png)
+# LAYER-W - Near-Native Web Execution Layer for Games & Applications
 
-### Layer-W Overview & Purpose
+### Overview
 
-- Overview: A tightly managed cross-platform application engine that maximizes performance through aggressive memory reuse and graphics-oriented memory layout. The reserved memory model balances rendering performance with necessary data persistence. Has the flexibility to render all content in a static SPA.
+- A tightly managed cross-platform application engine that maximizes performance through aggressive memory reuse and graphics-oriented memory layout.
+  The reserved memory model balances rendering performance with necessary data persistence. Has the flexibility to render all content in a static SPA.
 
-- Purpose: Pathfinding for performant, platform agnostic application solution using WebGPU & Rust + WASM / WASI.
+### Purpose
 
-- Ethos: More with Less, Isogaba Maware, Five S.
-
-### Layer-W Stack
-
-- Rust, Cargo, Bash, Winit, Wry, wgpu, wasm_bindgen, web_sys, js_sys, sdl2, Gamepad API, etc.
+- Pathfinding for performant, platform agnostic application solution using WebGPU & Rust + WASM / WASI.
 
 ### Layer-W Features
 
@@ -20,16 +17,12 @@
 
 - Total Memory Limit is 4GB. Fixed resolution 1080 x 720. Max texture size is 2k, high quality maps should only be used only on critical assets.
 
-### Build System
-
-- Cargo, Bash, wasm-bindgen, wasm-opt, wasm-pack, wasmtime, wasm32-unknown-unknown & / or wasm32-wasip1/p2, x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu.
-
 ### Host Runtimes
 
-- Windows, Linux, Browser, Wasmtime, WAMR https://github.com/bytecodealliance/wasm-micro-runtime/tree/main
+- Windows, Linux, Browser, Wasmtime, [WAMR](https://github.com/bytecodealliance/wasm-micro-runtime/tree/main)
 - More Native platforms & functionality may be supported pending WASI improvements (TBD)
 
-## Feature Parity
+### Feature Parity
 
 - Shared Business Logic: All core algorithms and business logic are in platform-agnostic Rust code.
 - Platform Adapters: Adapter layers via cfg provide the same capabilities through different implementations.
@@ -70,6 +63,8 @@ Because the browser effectively has a compiler that we can make use of, extra wa
   - Surface Creation: Platform abstraction layer
 - Input Handling (Side Car / Event Forwarding): SDL2 for native, Gamepad API for web.
 
+![img](./img/LayerW.png)
+
 ### Up Next
 
 - To Research: Walloc Cache System, Web Worker swarm - 4GB+ memory limit investigation.
@@ -86,15 +81,15 @@ Because the browser effectively has a compiler that we can make use of, extra wa
 - Aggressive region recycling
 - Near-to-far overwrite pattern
 
-#### Threading/Concurrency
-
-- Web Workers: Parallel processing
-- Task System: Job scheduling
-- Async Loading: Non-blocking I/O
-
 #### Asset Pipeline
 
 - Model Loader: Mesh data streaming
 - Texture Manager: Mipmap generation & compression
 - Shader Compiler: WGSL/SPIR-V processing
 - Asset Cache: Memory-mapped resource store
+
+#### Threading/Concurrency
+
+- Web Workers: Parallel processing
+- Task System: Job scheduling
+- Async Loading: Non-blocking I/O

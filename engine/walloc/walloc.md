@@ -90,6 +90,86 @@ Walloc is a custom memory allocator implemented in Rust for WebAssembly applicat
               - The allocator automatically grows memory when needed
               - Proper memory alignment ensures optimal performance for GPU access
 
+## Review: Recycle Model
+
+When you call fast_compact_tier(TIER.SCENE, 1 \* MB), here's what happens:
+
+1. The first 1 \* MB of memory in the SCENE tier is preserved exactly as-is
+2. The allocation pointer is simply reset to the position right after this preserved section
+3. Any new allocations will automatically start from this new position (after the preserved area)
+4. The old data beyond the preserved area remains in memory as "garbage" but will be overwritten by new allocations
+
+This gives you a very efficient way to keep important data while recycling the rest of the memory. There's no expensive memory copying involved - it's just a pointer adjustment, which is extremely fast.
+
+Here's a visualization:
+
+```
+Before fast_compact_tier(TIER.SCENE, 1MB):
+[TIER BASE]
+|-------------------------|-------------------------|-------------------------|
+| Important level data    | Current scene objects   | Recently culled objects |
+| (1MB)                   | (2MB)                   | (1MB)                   |
+|-------------------------|-------------------------|-------------------------|
+                          ^                                                   ^
+                          |                                                   |
+                  current_offset = 3MB                               capacity = 4MB
+
+
+After fast_compact_tier(TIER.SCENE, 1MB):
+[TIER BASE]
+|-------------------------|-------------------------|-------------------------|
+| Important level data    | "Garbage" data, but     | "Garbage" data, but     |
+| (preserved, 1MB)        | available for reuse     | available for reuse     |
+|-------------------------|-------------------------|-------------------------|
+                          ^                                                   ^
+                          |                                                   |
+                  current_offset = 1MB                               capacity = 4MB
+
+
+After new allocations:
+[TIER BASE]
+|-------------------------|-------------------------|-------------------------|
+| Important level data    | Newly allocated objects | "Garbage" data, but     |
+| (preserved, 1MB)        | (1.5MB)                 | available for reuse     |
+|-------------------------|-------------------------|-------------------------|
+                                              ^                               ^
+                                              |                               |
+                                    current_offset = 2.5MB          capacity = 4MB
+```
+
+This approach is perfect for game loops because:
+
+You can organize your memory so that persistent data (level geometry, shared textures) is at the beginning
+Transient data (dynamic objects, particles) comes after.
+
+When you need to recycle memory, you just preserve the persistent part and reuse the rest.
+The operation is incredibly fast since it's just an atomic store to update the allocation pointer.
+
+All new allocations will automatically respect the preserved area because the allocator's internal current_offset is pointing just after it. This is all handled seamlessly by the bump allocator design.
+
+Matches game scene lifecycle perfectly:
+
+- Persistent level data stays at the beginning (preserved section)
+- Current visible/active objects occupy the middle (new allocations)
+- Previously visible but now culled objects' memory is automatically recycled
+
+Zero-cost memory recycling:
+
+- When objects get culled from view, you don't need to explicitly free each one
+- Simply call fast_compact_tier() with your preservation size, and all memory beyond that point becomes available instantaneously
+- No fragmentation to worry about - the "garbage" data is simply overwritten
+
+Perfect alignment with visibility culling:
+
+- As the player moves through the game world, new objects come into view while others leave
+- This allocator naturally accommodates this pattern without complex memory tracking
+
+Efficient for WASM environments:
+
+- WebAssembly has a linear memory model with growing costs
+- This allocator minimizes the need to grow memory by efficiently recycling existing pages
+- The high water mark tracking helps you optimize memory usage over time
+
 ## Review: Ownership Model
 
 - Independent Reference Counting: Each arena (Render, Scene, Entity) has its own Arc<Mutex<>>, meaning its lifetime is managed independently.

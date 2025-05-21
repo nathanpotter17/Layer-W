@@ -7,8 +7,8 @@ export class Walloc {
   static new_tiered(): Walloc;
   get_memory_view(offset: number, length: number): Uint8Array;
   allocate_tiered(size: number, tier_number: number): number;
+  fast_compact_tier(tier_number: number, preserve_bytes: number): boolean;
   reset_tier(tier_number: number): boolean;
-  tier_stats(tier_number: number): object;
   allocate(size: number): number;
   free(offset: number): void;
   copy_from_js(offset: number, data: Uint8Array): void;
@@ -25,8 +25,8 @@ export interface InitOutput {
   readonly walloc_new_tiered: () => number;
   readonly walloc_get_memory_view: (a: number, b: number, c: number, d: number) => void;
   readonly walloc_allocate_tiered: (a: number, b: number, c: number) => number;
+  readonly walloc_fast_compact_tier: (a: number, b: number, c: number) => number;
   readonly walloc_reset_tier: (a: number, b: number) => number;
-  readonly walloc_tier_stats: (a: number, b: number) => number;
   readonly walloc_allocate: (a: number, b: number) => number;
   readonly walloc_free: (a: number, b: number) => void;
   readonly walloc_copy_from_js: (a: number, b: number, c: number, d: number) => void;

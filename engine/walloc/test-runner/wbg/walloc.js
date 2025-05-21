@@ -263,19 +263,20 @@ export class Walloc {
     }
     /**
      * @param {number} tier_number
+     * @param {number} preserve_bytes
+     * @returns {boolean}
+     */
+    fast_compact_tier(tier_number, preserve_bytes) {
+        const ret = wasm.walloc_fast_compact_tier(this.__wbg_ptr, tier_number, preserve_bytes);
+        return ret !== 0;
+    }
+    /**
+     * @param {number} tier_number
      * @returns {boolean}
      */
     reset_tier(tier_number) {
         const ret = wasm.walloc_reset_tier(this.__wbg_ptr, tier_number);
         return ret !== 0;
-    }
-    /**
-     * @param {number} tier_number
-     * @returns {object}
-     */
-    tier_stats(tier_number) {
-        const ret = wasm.walloc_tier_stats(this.__wbg_ptr, tier_number);
-        return takeObject(ret);
     }
     /**
      * @param {number} size

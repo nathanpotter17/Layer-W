@@ -54,6 +54,9 @@ pub struct Arena {
     size: usize,
     current_offset: AtomicUsize,
     tier: Tier,
+
+    high_water_mark: AtomicUsize,  // Track the highest allocation point
+    total_allocated: AtomicUsize,  // Track total bytes allocated, even when recycled
 }
 
 // Entity that owns memory in an arena
@@ -232,10 +235,12 @@ impl Arena {
             size,
             current_offset: AtomicUsize::new(0),
             tier,
+            high_water_mark: AtomicUsize::new(0),
+            total_allocated: AtomicUsize::new(0),
         }
     }
     
-    // Bump allocation - very fast but no individual deallocation
+    // Bump allocation - very fast track total allocated memory and high water mark
     pub fn allocate(&self, size: usize) -> Option<(*mut u8, usize)> {
         // Align size to appropriate boundary based on tier
         let aligned_size = match self.tier {
@@ -261,7 +266,16 @@ impl Arena {
                 Ordering::Relaxed
             ) {
                 Ok(_) => {
-                    // Success! Return pointer to the allocated memory
+                    // Success! Update the high water mark if needed
+                    let mut hwm = self.high_water_mark.load(Ordering::Relaxed);
+                    if new_offset > hwm {
+                        self.high_water_mark.store(new_offset, Ordering::Relaxed);
+                    }
+                    
+                    // Update total allocated bytes
+                    self.total_allocated.fetch_add(aligned_size, Ordering::Relaxed);
+                    
+                    // Return pointer to the allocated memory
                     let ptr = unsafe { self.base.add(current_offset) };
                     return Some((ptr, aligned_size));
                 }
@@ -293,6 +307,30 @@ impl Arena {
     pub fn capacity(&self) -> usize {
         self.size
     }
+
+    // Fast compact operation that preserves the first 'preserve_bytes' of memory
+    pub fn fast_compact(&self, preserve_bytes: usize) -> bool {
+        // Ensure we don't preserve more than our current offset
+        let current = self.current_offset.load(Ordering::Relaxed);
+        if preserve_bytes > current {
+            return false; // Can't preserve more than we've allocated
+        }
+        
+        // Simple atomic store to update the allocation pointer
+        // This effectively "recycles" all memory after the preserved section
+        self.current_offset.store(preserve_bytes, Ordering::SeqCst);
+        
+        true
+    }
+
+    pub fn get_stats(&self) -> (usize, usize, usize, usize) {
+        (
+            self.usage(),
+            self.capacity(),
+            self.high_water_mark.load(Ordering::Relaxed),
+            self.total_allocated.load(Ordering::Relaxed)
+        )
+    }
 }
 
 // TieredAllocator implementation
@@ -318,6 +356,29 @@ impl TieredAllocator {
             scene_arena: Arc::new(Mutex::new(scene_arena)),
             entity_arena: Arc::new(Mutex::new(entity_arena)),
         }
+    }
+
+    // Fast compact for a specific tier
+    pub fn fast_compact_tier(&mut self, tier: Tier, preserve_bytes: usize) -> bool {
+        match tier {
+            Tier::Render => {
+                if let Ok(arena) = self.render_arena.lock() {
+                    return arena.fast_compact(preserve_bytes);
+                }
+            },
+            Tier::Scene => {
+                if let Ok(arena) = self.scene_arena.lock() {
+                    return arena.fast_compact(preserve_bytes);
+                }
+            },
+            Tier::Entity => {
+                if let Ok(arena) = self.entity_arena.lock() {
+                    return arena.fast_compact(preserve_bytes);
+                }
+            },
+        }
+        
+        false
     }
 
     // Grow heap for a specific tier - exact allocation, no overhead
@@ -476,28 +537,27 @@ impl TieredAllocator {
         }
     }
     
-    // Get stats for a tier
-    pub fn tier_stats(&self, tier: Tier) -> (usize, usize) {
+    pub fn tier_stats(&self, tier: Tier) -> (usize, usize, usize, usize) {
         match tier {
             Tier::Render => {
                 if let Ok(arena) = self.render_arena.lock() {
-                    (arena.usage(), arena.capacity())
+                    arena.get_stats()
                 } else {
-                    (0, 0)
+                    (0, 0, 0, 0)
                 }
             },
             Tier::Scene => {
                 if let Ok(arena) = self.scene_arena.lock() {
-                    (arena.usage(), arena.capacity())
+                    arena.get_stats()
                 } else {
-                    (0, 0)
+                    (0, 0, 0, 0)
                 }
             },
             Tier::Entity => {
                 if let Ok(arena) = self.entity_arena.lock() {
-                    (arena.usage(), arena.capacity())
+                    arena.get_stats()
                 } else {
-                    (0, 0)
+                    (0, 0, 0, 0)
                 }
             },
         }
@@ -586,6 +646,21 @@ impl Walloc {
             (ptr as usize) - (self.memory_base as usize)
         }
     }
+
+    #[wasm_bindgen]
+    pub fn fast_compact_tier(&mut self, tier_number: u8, preserve_bytes: usize) -> bool {
+        let tier = match Tier::from_u8(tier_number) {
+            Some(t) => t,
+            None => return false,
+        };
+        
+        match &mut self.strategy {
+            AllocatorStrategy::Tiered(allocator) => {
+                allocator.fast_compact_tier(tier, preserve_bytes)
+            },
+            _ => false,
+        }
+    }
     
     // Reset a specific tier
     #[wasm_bindgen]
@@ -602,42 +677,6 @@ impl Walloc {
             },
             _ => false,
         }
-    }
-    
-    // Get statistics for a specific tier
-    #[wasm_bindgen]
-    pub fn tier_stats(&self, tier_number: u8) -> js_sys::Object {
-        let obj = js_sys::Object::new();
-        
-        if let Some(tier) = Tier::from_u8(tier_number) {
-            if let AllocatorStrategy::Tiered(allocator) = &self.strategy {
-                let (used, capacity) = allocator.tier_stats(tier);
-                
-                js_sys::Reflect::set(
-                    &obj, 
-                    &JsValue::from_str("used"), 
-                    &JsValue::from_f64(used as f64)
-                ).unwrap();
-                
-                js_sys::Reflect::set(
-                    &obj,
-                    &JsValue::from_str("capacity"),
-                    &JsValue::from_f64(capacity as f64)
-                ).unwrap();
-                
-                js_sys::Reflect::set(
-                    &obj,
-                    &JsValue::from_str("tierName"),
-                    &JsValue::from_str(match tier {
-                        Tier::Render => "render",
-                        Tier::Scene => "scene",
-                        Tier::Entity => "entity",
-                    })
-                ).unwrap();
-            }
-        }
-        
-        obj
     }
     
     // Standard allocate (backward compatibility)
@@ -719,27 +758,8 @@ impl Walloc {
         let current_pages = core::arch::wasm32::memory_size(0);
         let current_size = current_pages * 65536;
         
-        js_sys::Reflect::set(
-            &obj, 
-            &JsValue::from_str("totalSize"), 
-            &JsValue::from_f64(current_size as f64)
-        ).unwrap();
-        
-        js_sys::Reflect::set(
-            &obj,
-            &JsValue::from_str("pages"),
-            &JsValue::from_f64(current_pages as f64)
-        ).unwrap();
-        
-        // Add allocator type
-        js_sys::Reflect::set(
-            &obj,
-            &JsValue::from_str("allocatorType"),
-            &JsValue::from_str(match &self.strategy {
-                AllocatorStrategy::Default(_) => "default",
-                AllocatorStrategy::Tiered(_) => "tiered",
-            })
-        ).unwrap();
+        // Track total in-use memory
+        let mut total_in_use = 0;
         
         // Add tier information if using tiered allocator
         if let AllocatorStrategy::Tiered(allocator) = &self.strategy {
@@ -747,8 +767,11 @@ impl Walloc {
             
             for tier_num in 0..3 {
                 if let Some(tier) = Tier::from_u8(tier_num) {
-                    let (used, capacity) = allocator.tier_stats(tier);
+                    let (used, capacity, high_water, total_allocated) = allocator.tier_stats(tier);
                     let tier_obj = js_sys::Object::new();
+                    
+                    // Add current usage to total
+                    total_in_use += used;
                     
                     js_sys::Reflect::set(
                         &tier_obj,
@@ -772,11 +795,29 @@ impl Walloc {
                         &JsValue::from_f64(capacity as f64)
                     ).unwrap();
                     
-                    const tcb: f64 = 4.0 * 1024.0 * 1024.0 * 1024.0; // 4GB in bytes
                     js_sys::Reflect::set(
                         &tier_obj,
-                        &JsValue::from_str("percentage"),
-                        &JsValue::from_f64((used as f64 / tcb) * 100.0)
+                        &JsValue::from_str("highWaterMark"),
+                        &JsValue::from_f64(high_water as f64)
+                    ).unwrap();
+                    
+                    js_sys::Reflect::set(
+                        &tier_obj,
+                        &JsValue::from_str("totalAllocated"),
+                        &JsValue::from_f64(total_allocated as f64)
+                    ).unwrap();
+                    
+                    // Calculate memory savings
+                    let saved = if total_allocated > used {
+                        total_allocated - used
+                    } else {
+                        0
+                    };
+                    
+                    js_sys::Reflect::set(
+                        &tier_obj,
+                        &JsValue::from_str("memorySaved"),
+                        &JsValue::from_f64(saved as f64)
                     ).unwrap();
                     
                     tiers.push(&tier_obj);
@@ -788,7 +829,48 @@ impl Walloc {
                 &JsValue::from_str("tiers"),
                 &tiers
             ).unwrap();
+        } else if let AllocatorStrategy::Default(_) = &self.strategy {
+            // For default allocator, we don't have tiered tracking
+            // so we can't calculate total_in_use from tiers
+            total_in_use = current_size; // Conservative estimate
         }
+        
+        // Set the total size to the in-use memory (not just raw WASM memory size)
+        js_sys::Reflect::set(
+            &obj, 
+            &JsValue::from_str("totalSize"), 
+            &JsValue::from_f64(total_in_use as f64)
+        ).unwrap();
+        
+        // Add raw memory pages info
+        js_sys::Reflect::set(
+            &obj,
+            &JsValue::from_str("pages"),
+            &JsValue::from_f64(current_pages as f64)
+        ).unwrap();
+        
+        js_sys::Reflect::set(
+            &obj,
+            &JsValue::from_str("rawMemorySize"),
+            &JsValue::from_f64(current_size as f64)
+        ).unwrap();
+        
+        // Add allocator type
+        js_sys::Reflect::set(
+            &obj,
+            &JsValue::from_str("allocatorType"),
+            &JsValue::from_str(match &self.strategy {
+                AllocatorStrategy::Default(_) => "default",
+                AllocatorStrategy::Tiered(_) => "tiered",
+            })
+        ).unwrap();
+        
+        // Add useful utilization percentage
+        js_sys::Reflect::set(
+            &obj,
+            &JsValue::from_str("memoryUtilization"),
+            &JsValue::from_f64((total_in_use as f64 / current_size as f64) * 100.0)
+        ).unwrap();
         
         obj
     }

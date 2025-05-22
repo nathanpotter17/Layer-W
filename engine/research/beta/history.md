@@ -2,50 +2,50 @@
 
 ### Beta
 
-- 5/5/25 - [v0.1.0](/engine/research/beta/layerwV0.1.0.md) Beta Proposal
-  - Wevent Submodule Established `v0.0.1`
-  - Winput Submodule Established `v0.0.1`
-- 5/8/25 - [v0.1.1](/engine/research/beta/layerwV0.1.1.md) Beta Proposal Two
-  - Walloc Submodule Established `v0.0.1`
-- 5/13/25 - [v0.1.2](/engine/research/beta/layerwV0.1.1.md) Beta Proposal Revision One
-  - Wwindow Submodule Established `v0.0.1`
-- 5/14/25 - [v0.1.3](/engine/research/beta/layerwV0.1.2.md) Beta Proposal Revision Two
-  - Wwindow Submodule `v0.0.2`
-- 5/15/25 - [v0.1.3](/engine/research/beta/layerwV0.1.2.md)
-  - Walloc Submodule `v0.1.0`
-  - Wwindow Submodule `v0.0.3`
-- 5/16/25 - [v0.1.3](/engine/research/beta/layerwV0.1.2.md)
-  - Walloc Submodule `v0.1.1`
-- 5/18/25 - [v0.1.4](/engine/research/beta/layerwV0.1.3.md) Beta Proposal Revision Three
-  - Wwindow Submodule `v0.1.0`
+- 5/21/25 - [v0.1.6](/engine/research/beta/layerwV0.1.4.md) Beta Proposal Revision Five
+  - Walloc Submodule `v0.2.0`
 - 5/19/25 - [v0.1.5](/engine/research/beta/layerwV0.1.4.md) Beta Proposal Revision Four
   - Walloc Submodule `v0.1.2`
   - Wwindow Submodule `v0.2.0`
-- 5/21/25 - [v0.1.6](/engine/research/beta/layerwV0.1.4.md) Beta Proposal Revision Five
-  - Walloc Submodule `v0.2.0`
+- 5/18/25 - [v0.1.4](/engine/research/beta/layerwV0.1.3.md) Beta Proposal Revision Three
+  - Wwindow Submodule `v0.1.0`
+- 5/16/25 - [v0.1.3](/engine/research/beta/layerwV0.1.2.md)
+  - Walloc Submodule `v0.1.1`
+- 5/15/25 - [v0.1.3](/engine/research/beta/layerwV0.1.2.md)
+  - Walloc Submodule `v0.1.0`
+  - Wwindow Submodule `v0.0.3`
+- 5/14/25 - [v0.1.3](/engine/research/beta/layerwV0.1.2.md) Beta Proposal Revision Two
+  - Wwindow Submodule `v0.0.2`
+- 5/13/25 - [v0.1.2](/engine/research/beta/layerwV0.1.1.md) Beta Proposal Revision One
+  - Wwindow Submodule Established `v0.0.1`
+- 5/8/25 - [v0.1.1](/engine/research/beta/layerwV0.1.1.md) Beta Proposal Two
+  - Walloc Submodule Established `v0.0.1`
+- 5/5/25 - [v0.1.0](/engine/research/beta/layerwV0.1.0.md) Beta Proposal
+  - Wevent Submodule Established `v0.0.1`
+  - Winput Submodule Established `v0.0.1`
 
 ### Alpha
 
-- 4/22/25 - [v0.0.0a](/engine/research/pre-lim/layerwV0.0.1a.md) Alpha Proposal
-- 4/24/25 - [v0.0.1](/engine/research/pre-lim/layerwV0.0.2.md) Alpha Proposal Two
 - 4/26/25 - [v0.0.2](/engine/research/pre-lim/layerwV0.0.3.md) Alpha Proposal Three
+- 4/24/25 - [v0.0.1](/engine/research/pre-lim/layerwV0.0.2.md) Alpha Proposal Two
+- 4/22/25 - [v0.0.0a](/engine/research/pre-lim/layerwV0.0.1a.md) Alpha Proposal
 
 ### Pre-Alpha
 
-- 10/4/24 - [First Commit with WASM](https://github.com/nathanpotter17/emcc-wasm/commit/ebdf00d64fa8fc0808795e5ea19de17e7a0fbd5e)
-- 11/8/24 - [First Library usage of WASM](https://github.com/nathanpotter17/emcc-wasm/commit/ddb3775a94dcfc4f4be8b41e461bd92d9af4cc97)
-  - [AI in WASM using Dlib](https://github.com/nathanpotter17/emcc-wasm/blob/main/src/library/htmlTestDlib/test.cpp)
-- 11/29/24 - [Multi-Library WASM Usage](https://github.com/nathanpotter17/emcc-wasm/commit/e72aa2b3dbcedf2e5a96d7346387b440d1d8cd72)
-  - [WIT, WASM Shared Memory, WASM Module Decl., Emscripten Toolchain + VFS, Image Processing via Shared Buffers](https://github.com/nathanpotter17/emcc-wasm/tree/main/src/library)
-  - [Emscripten & WASM: Zero to Hero](https://github.com/nathanpotter17/emcc-wasm)
-- 3/16/25 - [Start Rust with WASM](https://github.com/nathanpotter17/emcc-wasm/commit/9d9b2275b8ffdb328af5ec97185086d62a310a67)
-  - [Intro to WASI](https://github.com/nathanpotter17/emcc-wasm/blob/main/src/wasi/README.md)
-  - [WASI P1/P2 CLI apps](https://github.com/nathanpotter17/emcc-wasm/tree/main/src/wasi/rust/wasm-cla)
 - 3/29/25 - [Cross Platform Rust + WASM](https://github.com/nathanpotter17/emcc-wasm/commit/1deca23d0ed2955ef7cf09dd879194030f33f6bf)
   - [PolyglotGPU - WebGPU in Three Languages](https://github.com/nathanpotter17/polyglot-gpu)
   - [Winit 0.29 + WGPU](https://github.com/nathanpotter17/emcc-wasm/tree/main/src/wasi/rust/wasm-wgpu)
   - [Rust + wasm-bindgen + web_sys + js_sys](https://github.com/nathanpotter17/emcc-wasm/tree/main/src/wasi/rust/wasm-sys-bindgen)
   - [Rust + wasm-bindgen + event handled input](https://github.com/nathanpotter17/emcc-wasm/tree/main/src/wasi/rust/wasm-input)
+- 3/16/25 - [Start Rust with WASM](https://github.com/nathanpotter17/emcc-wasm/commit/9d9b2275b8ffdb328af5ec97185086d62a310a67)
+  - [Intro to WASI](https://github.com/nathanpotter17/emcc-wasm/blob/main/src/wasi/README.md)
+  - [WASI P1/P2 CLI apps](https://github.com/nathanpotter17/emcc-wasm/tree/main/src/wasi/rust/wasm-cla)
+- 11/29/24 - [Multi-Library WASM Usage](https://github.com/nathanpotter17/emcc-wasm/commit/e72aa2b3dbcedf2e5a96d7346387b440d1d8cd72)
+  - [WIT, WASM Shared Memory, WASM Module Decl., Emscripten Toolchain + VFS, Image Processing via Shared Buffers](https://github.com/nathanpotter17/emcc-wasm/tree/main/src/library)
+  - [Emscripten & WASM: Zero to Hero](https://github.com/nathanpotter17/emcc-wasm)
+- 11/8/24 - [First Library usage of WASM](https://github.com/nathanpotter17/emcc-wasm/commit/ddb3775a94dcfc4f4be8b41e461bd92d9af4cc97)
+  - [AI in WASM using Dlib](https://github.com/nathanpotter17/emcc-wasm/blob/main/src/library/htmlTestDlib/test.cpp)
+- 10/4/24 - [First Commit with WASM](https://github.com/nathanpotter17/emcc-wasm/commit/ebdf00d64fa8fc0808795e5ea19de17e7a0fbd5e)
 
 # Resources
 

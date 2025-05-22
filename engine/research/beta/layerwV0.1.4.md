@@ -40,6 +40,8 @@ The ventilated memory model eliminates traditional allocation overhead by treati
 
 Because the browser effectively has a compiler that we can make use of, extra wasm code can be networked in, and compiled on the client device, without the need to hit any endpoints apart from the one delivering the code. This could allow for many different HMR or other network oriented configurations for code compilation & delivery. It also lends itself to the distribution first ethos of Layer-W - This kind of availability would allow for networking in all kinds of functionality to Layer-W. The main limitation here is the download size.
 
+Otherwise, native networking over HTTP is supported with support using wasm_bindgen_futures, to enable asset streaming and AOT scene loading from HTTP endpoints.
+
 ### Graphics Pipeline
 
 #### Graphics Targets

@@ -3,8 +3,9 @@ use std::sync::{Arc, Mutex, atomic::{AtomicUsize, Ordering}};
 
 // For Loading Asset Data
 use reqwest::Client;
-use wasm_bindgen_futures::JsFuture;
-use js_sys::{Promise, Uint8Array, Array};
+use wasm_bindgen_futures::{future_to_promise};
+use std::collections::HashMap;
+use js_sys::Promise;
 
 #[wasm_bindgen]
 pub struct Walloc {
@@ -67,10 +68,27 @@ pub struct MemoryOwner {
     allocations: Vec<(usize, usize)>,
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum AssetType {
+    Image = 0,
+    Json = 1,
+}
+
+#[derive(Clone)]
+struct AssetMetadata {
+    asset_type: AssetType,
+    size: usize,
+    offset: usize,
+}
+
 pub struct TieredAllocator {
     render_arena: Arc<Mutex<Arena>>,
     scene_arena: Arc<Mutex<Arena>>,
     entity_arena: Arc<Mutex<Arena>>,
+
+    assets: Arc<Mutex<HashMap<String, AssetMetadata>>>,
+    base_url: Arc<Mutex<String>>,
+    http_client: Client,
 }
 
 impl DefaultAllocator {
@@ -105,7 +123,7 @@ impl DefaultAllocator {
         
         // Find a suitable free block using first-fit strategy
         let mut current = self.free_list_head;
-        let mut prev: *mut BlockHeader = std::ptr::null_mut();
+        let mut _prev: *mut BlockHeader = std::ptr::null_mut();
         
         while !current.is_null() {
             unsafe {
@@ -134,7 +152,7 @@ impl DefaultAllocator {
                 }
                 
                 // Move to the next block
-                prev = current;
+                _prev = current;
                 current = (*current).next;
             }
         }
@@ -266,7 +284,7 @@ impl Arena {
             ) {
                 Ok(_) => {
                     // Success! Update the high water mark if needed
-                    let mut hwm = self.high_water_mark.load(Ordering::Relaxed);
+                    let hwm = self.high_water_mark.load(Ordering::Relaxed);
                     if new_offset > hwm {
                         self.high_water_mark.store(new_offset, Ordering::Relaxed);
                     }
@@ -357,6 +375,10 @@ impl TieredAllocator {
             render_arena: Arc::new(Mutex::new(render_arena)),
             scene_arena: Arc::new(Mutex::new(scene_arena)),
             entity_arena: Arc::new(Mutex::new(entity_arena)),
+
+            assets: Arc::new(Mutex::new(HashMap::new())),
+            base_url: Arc::new(Mutex::new(String::new())),
+            http_client: Client::new(),
         }
     }
 
@@ -405,7 +427,6 @@ impl TieredAllocator {
                 if total_current_pages + additional_pages_needed > max_pages {
                     #[cfg(target_arch = "wasm32")]
                     {
-                        use web_sys::console;
                         web_sys::console::log_1(&format!(
                             "Cannot grow memory - would exceed 4GB limit. Current pages: {}, needed: {}, max: {}",
                             total_current_pages, additional_pages_needed, max_pages
@@ -417,7 +438,6 @@ impl TieredAllocator {
                 // Try to grow the heap
                 #[cfg(target_arch = "wasm32")]
                 {   
-                    use web_sys::console;
                     web_sys::console::log_1(&format!(
                         "Growing heap for tier {:?} compact - current: {}, preserve: {}, growing by: {} pages",
                         tier, current_offset, preserve_bytes, additional_pages_needed
@@ -459,7 +479,6 @@ impl TieredAllocator {
                 if new_mem.is_null() {
                     #[cfg(target_arch = "wasm32")]
                     {   
-                        use web_sys::console;
                         web_sys::console::log_1(&JsValue::from_str("Failed to grow memory for compact operation"));
                     }
                     return false;
@@ -592,9 +611,7 @@ impl TieredAllocator {
         let new_block_size = pages_needed * 65536;
         
         // Calculate the base address for the new memory
-        let new_memory_base = unsafe { 
-            (old_pages * 65536) as *mut u8 
-        };
+        let new_memory_base = (old_pages * 65536) as *mut u8;
         
         // Create a new arena for the specific tier
         let new_arena = Arena::new(new_memory_base, new_block_size, tier);
@@ -839,70 +856,292 @@ impl TieredAllocator {
     pub fn is_ptr_valid(&self, ptr: *mut u8) -> bool {
         self.is_ptr_in_arena(ptr)
     }
-}
 
-pub enum AssetType {
-    Image = 0,
-    Json = 1,
-}
-
-struct AssetMetadata {
-    asset_type: AssetType,
-    size: usize,
-    offset: usize,
-}
-
-pub struct AssetManager {
-    allocator: Walloc<TieredAllocator>,
-    http_client: Client,
-    assets: Arc<Mutex<HashMap<String, AssetMetadata>>>,
-    base_url: String,
-}
-
-impl AssetManager {
-    pub fn new() -> Self {
-        let http_client = Client::new();
-        let t_alloc = Walloc::new_tiered();
-
-        AssetManager {
-            t_alloc,
-            http_client,
-            assets: Arc::new(Mutex::new(HashMap::new()))
-            base_url: base_url.unwrap_or_else(|| "".to_string()),
+    pub fn set_base_url(&self, url: String) {
+        if let Ok(mut base_url) = self.base_url.lock() {
+            *base_url = url;
         }
     }
 
-    async fn print_json() -> Result<(), Box<dyn std::error::Error>> {
-        let resp = self.http_client.get("https://jsonplaceholder.typicode.com/todos/1")
-            .await?
-            .json::<HashMap<String, String>>()
-            .await?;
-        println!("{resp:#?}");
-        Ok(())
-    }
-
-    async fn load_asset(&self, url: String, asset_type: u8) -> Result<usize, JsValue> {
-         let asset_type = match asset_type {
+    pub async fn load_asset(&mut self, path: String, asset_type: u8) -> Result<usize, JsValue> {
+        let asset_type = match asset_type {
             0 => AssetType::Image,
             1 => AssetType::Json,
             _ => return Err(JsValue::from_str("Invalid asset type: must be 0 (Image) or 1 (Json)")),
         };
-        
-        // Fetch the asset using reqwest
-        let response = self.http_client.get(&full_url)
-            .send()
-            .await
-            .map_err(|e| JsValue::from_str(&format!("Failed to fetch: {}", e)))?;
-            
-        let bytes = response.bytes()
-            .await
-            .map_err(|e| JsValue::from_str(&format!("Failed to get bytes: {}", e)))?;
-            
-        let data_size = bytes.len();
-        println!(&bytes.into())
-        println!(&data_size.into())
 
-        // To store in WASM memory: copy_to_js, allocate_tiered, or something custom?
+        // Get the base URL from the mutex
+        let full_url = {
+            let base_url = match self.base_url.lock() {
+                Ok(guard) => guard.clone(),
+                Err(_) => return Err(JsValue::from_str("Failed to lock base_url")),
+            };
+            format!("{}{}", base_url, path)
+        };
+        
+        web_sys::console::log_1(&format!("Loading asset from: {}", full_url).into());
+
+        // Fetch the asset
+        let response = match self.http_client.get(&full_url).send().await {
+            Ok(resp) => resp,
+            Err(e) => return Err(JsValue::from_str(&format!("Failed to fetch: {}", e))),
+        };
+        
+        if !response.status().is_success() {
+            return Err(JsValue::from_str(&format!(
+                "HTTP error: {} for {}", 
+                response.status(), 
+                full_url
+            )));
+        }
+
+        // Get the bytes
+        let bytes = match response.bytes().await {
+            Ok(b) => b,
+            Err(e) => return Err(JsValue::from_str(&format!("Failed to get bytes: {}", e))),
+        };
+
+        let data_size = bytes.len();
+
+        // Allocate memory in the Scene tier
+        let ptr = self.allocate(data_size, Tier::Scene);
+        
+        if ptr.is_null() {
+            return Err(JsValue::from_str("Failed to allocate memory for asset"));
+        }
+        
+        // Calculate offset from memory base
+        let memory_base = self.get_memory_base(Tier::Scene);
+        let offset = (ptr as usize) - (memory_base as usize);
+        
+        // Copy bytes into memory
+        unsafe {
+            std::ptr::copy_nonoverlapping(bytes.as_ptr(), ptr, data_size);
+        }
+
+        // Save metadata
+        if let Ok(mut assets) = self.assets.lock() {
+            assets.insert(
+                path.clone(),
+                AssetMetadata {
+                    asset_type,
+                    size: data_size,
+                    offset,
+                },
+            );
+        } else {
+            return Err(JsValue::from_str("Failed to acquire assets lock"));
+        }
+
+        Ok(offset)
+    }
+
+    // Get memory base pointer for a specific tier
+    fn get_memory_base(&self, tier: Tier) -> *mut u8 {
+        match tier {
+            Tier::Render => {
+                if let Ok(arena) = self.render_arena.lock() {
+                    arena.base
+                } else {
+                    std::ptr::null_mut()
+                }
+            },
+            Tier::Scene => {
+                if let Ok(arena) = self.scene_arena.lock() {
+                    arena.base
+                } else {
+                    std::ptr::null_mut()
+                }
+            },
+            Tier::Entity => {
+                if let Ok(arena) = self.entity_arena.lock() {
+                    arena.base
+                } else {
+                    std::ptr::null_mut()
+                }
+            },
+        }
+    }
+
+    pub async fn test_fetch_json(&self) -> Result<JsValue, JsValue> {
+        web_sys::console::log_1(&"Testing JSON fetch".into());
+        
+        let test_url = "https://jsonplaceholder.typicode.com/todos/1";
+        
+        let response = match self.http_client.get(test_url).send().await {
+            Ok(resp) => resp,
+            Err(e) => return Err(JsValue::from_str(&format!("Failed to fetch: {}", e))),
+        };
+        
+        if !response.status().is_success() {
+            return Err(JsValue::from_str(&format!("HTTP error: {}", response.status())));
+        }
+        
+        let text = match response.text().await {
+            Ok(t) => t,
+            Err(e) => return Err(JsValue::from_str(&format!("Failed to get text: {}", e))),
+        };
+        
+        web_sys::console::log_1(&format!("Received JSON: {}", text).into());
+        
+        Ok(JsValue::from_str(&text))
+    }
+
+    pub fn evict_asset(&mut self, path: &str) -> Result<(), JsValue> {
+        // First, get information about the target asset
+        let target_metadata = {
+            let assets_lock = match self.assets.lock() {
+                Ok(lock) => lock,
+                Err(_) => return Err(JsValue::from_str("Failed to acquire assets lock")),
+            };
+            
+            // Check if the asset exists
+            match assets_lock.get(path) {
+                Some(meta) => meta.clone(),
+                None => return Err(JsValue::from_str(&format!("Asset not found: {}", path))),
+            }
+        };
+        
+        // Get a temporary buffer for the content we want to preserve
+        let (preserve_buffer, preserve_map) = {
+            let assets_lock = match self.assets.lock() {
+                Ok(lock) => lock,
+                Err(_) => return Err(JsValue::from_str("Failed to acquire assets lock")),
+            };
+            
+            let mut preserve_buffer = Vec::new();
+            let mut preserve_map = HashMap::new();
+            
+            // Get memory base for Scene tier
+            let memory_base = self.get_memory_base(Tier::Scene);
+            
+            // Copy all assets except the one being evicted
+            for (asset_path, metadata) in assets_lock.iter() {
+                if asset_path != path {
+                    // Record the current position in our buffer
+                    let new_offset = preserve_buffer.len();
+                    
+                    // Read the asset's bytes
+                    unsafe {
+                        let src_ptr = memory_base.add(metadata.offset);
+                        let src_data = std::slice::from_raw_parts(src_ptr, metadata.size);
+                        
+                        // Append to our buffer
+                        preserve_buffer.extend_from_slice(src_data);
+                        
+                        // Add to our map with updated offset
+                        preserve_map.insert(asset_path.clone(), AssetMetadata {
+                            asset_type: metadata.asset_type,
+                            size: metadata.size,
+                            offset: new_offset,
+                        });
+                    }
+                }
+            }
+            
+            (preserve_buffer, preserve_map)
+        };
+        
+        // Now reset the entire scene tier
+        self.reset_tier(Tier::Scene);
+        
+        // If we have assets to preserve, reallocate and copy them back
+        if !preserve_buffer.is_empty() {
+            // Allocate new memory for the preserved data
+            let buffer_size = preserve_buffer.len();
+            let ptr = self.allocate(buffer_size, Tier::Scene);
+            
+            if ptr.is_null() {
+                return Err(JsValue::from_str("Failed to allocate memory for preserved assets"));
+            }
+            
+            // Calculate offset
+            let memory_base = self.get_memory_base(Tier::Scene);
+            let offset = (ptr as usize) - (memory_base as usize);
+            
+            // Copy the preserved data back to WebAssembly memory
+            unsafe {
+                std::ptr::copy_nonoverlapping(
+                    preserve_buffer.as_ptr(),
+                    ptr,
+                    buffer_size
+                );
+            }
+            
+            // Update the offsets in our preserve map
+            let mut updated_preserve_map = HashMap::new();
+            for (asset_path, metadata) in preserve_map {
+                updated_preserve_map.insert(asset_path, AssetMetadata {
+                    asset_type: metadata.asset_type,
+                    size: metadata.size,
+                    offset: offset + metadata.offset,
+                });
+            }
+            
+            // Update the assets HashMap with the preserved assets (removing the target)
+            let mut assets_lock = match self.assets.lock() {
+                Ok(lock) => lock,
+                Err(_) => return Err(JsValue::from_str("Failed to acquire assets lock")),
+            };
+            
+            // Clear and repopulate with preserved assets
+            assets_lock.clear();
+            for (asset_path, metadata) in updated_preserve_map {
+                assets_lock.insert(asset_path, metadata);
+            }
+        } else {
+            // If no assets to preserve, just clear the HashMap
+            let mut assets_lock = match self.assets.lock() {
+                Ok(lock) => lock,
+                Err(_) => return Err(JsValue::from_str("Failed to acquire assets lock")),
+            };
+            assets_lock.clear();
+        }
+        
+        web_sys::console::log_1(&format!(
+            "Evicted asset: {} and freed {} bytes",
+            path, target_metadata.size
+        ).into());
+        
+        Ok(())
+    }
+    
+    pub fn get_asset(&self, path: &str) -> Result<js_sys::Uint8Array, JsValue> {
+        // Get the assets lock
+        let assets_lock = match self.assets.lock() {
+            Ok(lock) => lock,
+            Err(_) => return Err(JsValue::from_str("Failed to acquire assets lock")),
+        };
+        
+        // Get the metadata
+        let metadata = match assets_lock.get(path) {
+            Some(meta) => meta.clone(), // Clone to avoid lifetime issues
+            None => return Err(JsValue::from_str(&format!("Asset not found: {}", path))),
+        };
+        
+        // Drop assets lock before accessing memory
+        drop(assets_lock);
+        
+        let memory_base = self.get_memory_base(Tier::Scene);
+        
+        unsafe {
+            let ptr = memory_base.add(metadata.offset);
+            let mem_slice = std::slice::from_raw_parts(ptr, metadata.size);
+            Ok(js_sys::Uint8Array::from(mem_slice))
+        }
+    }
+}
+
+impl Clone for TieredAllocator {
+    fn clone(&self) -> Self {
+        TieredAllocator {
+            render_arena: Arc::clone(&self.render_arena),
+            scene_arena: Arc::clone(&self.scene_arena),
+            entity_arena: Arc::clone(&self.entity_arena),
+            assets: Arc::clone(&self.assets),
+            base_url: Arc::clone(&self.base_url),
+            http_client: self.http_client.clone(),
+        }
     }
 }
 
@@ -939,6 +1178,70 @@ impl Walloc {
             strategy,
             memory_base,
             memory_size,
+        }
+    }
+
+    #[wasm_bindgen]
+    pub fn set_base_url(&self, url: String) -> Result<(), JsValue> {
+        if let AllocatorStrategy::Tiered(allocator) = &self.strategy {
+            allocator.set_base_url(url);
+            Ok(())
+        } else {
+            Err(JsValue::from_str("Asset management requires tiered allocator"))
+        }
+    }
+    
+    // Async methods return Promise
+    #[wasm_bindgen]
+    pub fn load_asset(&mut self, path: String, asset_type: u8) -> Promise {
+        if let AllocatorStrategy::Tiered(allocator) = &self.strategy {
+            let mut allocator_clone = allocator.clone();
+            
+            future_to_promise(async move {
+                match allocator_clone.load_asset(path, asset_type).await {
+                    Ok(offset) => Ok(JsValue::from_f64(offset as f64)),
+                    Err(e) => Err(e),
+                }
+            })
+        } else {
+            // Return a rejected promise for non-tiered allocators
+            let err = JsValue::from_str("Asset management requires tiered allocator");
+            let promise = js_sys::Promise::reject(&err);
+            promise
+        }
+    }
+    
+    #[wasm_bindgen]
+    pub fn test_fetch_json(&self) -> Promise {
+        if let AllocatorStrategy::Tiered(allocator) = &self.strategy {
+            let allocator_clone = allocator.clone();
+            
+            future_to_promise(async move {
+                allocator_clone.test_fetch_json().await
+            })
+        } else {
+            // Return a rejected promise for non-tiered allocators
+            let err = JsValue::from_str("Asset management requires tiered allocator");
+            let promise = js_sys::Promise::reject(&err);
+            promise
+        }
+    }
+
+    #[wasm_bindgen]
+    pub fn evict_asset(&mut self, path: String) -> Result<(), JsValue> {
+        if let AllocatorStrategy::Tiered(allocator) = &mut self.strategy {
+            allocator.evict_asset(&path)
+        } else {
+            Err(JsValue::from_str("Asset management requires tiered allocator"))
+        }
+    }
+    
+    #[wasm_bindgen]
+    pub fn get_asset(&self, path: String) -> Result<js_sys::Uint8Array, JsValue> {
+        if let AllocatorStrategy::Tiered(allocator) = &self.strategy {
+            allocator.get_asset(&path)
+        } else {
+            Err(JsValue::from_str("Asset management requires tiered allocator"))
         }
     }
     

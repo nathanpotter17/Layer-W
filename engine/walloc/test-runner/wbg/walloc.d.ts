@@ -5,6 +5,11 @@ export class Walloc {
   free(): void;
   static new(): Walloc;
   static new_tiered(): Walloc;
+  set_base_url(url: string): void;
+  load_asset(path: string, asset_type: number): Promise<any>;
+  test_fetch_json(): Promise<any>;
+  evict_asset(path: string): void;
+  get_asset(path: string): Uint8Array;
   get_memory_view(offset: number, length: number): Uint8Array;
   allocate_tiered(size: number, tier_number: number): number;
   fast_compact_tier(tier_number: number, preserve_bytes: number): boolean;
@@ -23,6 +28,11 @@ export interface InitOutput {
   readonly __wbg_walloc_free: (a: number, b: number) => void;
   readonly walloc_new: () => number;
   readonly walloc_new_tiered: () => number;
+  readonly walloc_set_base_url: (a: number, b: number, c: number, d: number) => void;
+  readonly walloc_load_asset: (a: number, b: number, c: number, d: number) => number;
+  readonly walloc_test_fetch_json: (a: number) => number;
+  readonly walloc_evict_asset: (a: number, b: number, c: number, d: number) => void;
+  readonly walloc_get_asset: (a: number, b: number, c: number, d: number) => void;
   readonly walloc_get_memory_view: (a: number, b: number, c: number, d: number) => void;
   readonly walloc_allocate_tiered: (a: number, b: number, c: number) => number;
   readonly walloc_fast_compact_tier: (a: number, b: number, c: number) => number;
@@ -35,7 +45,11 @@ export interface InitOutput {
   readonly __wbindgen_export_0: (a: number) => void;
   readonly __wbindgen_export_1: (a: number, b: number) => number;
   readonly __wbindgen_export_2: (a: number, b: number, c: number, d: number) => number;
+  readonly __wbindgen_export_3: WebAssembly.Table;
   readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
+  readonly __wbindgen_export_4: (a: number, b: number) => void;
+  readonly __wbindgen_export_5: (a: number, b: number, c: number) => void;
+  readonly __wbindgen_export_6: (a: number, b: number, c: number, d: number) => void;
 }
 
 export type SyncInitInput = BufferSource | WebAssembly.Module;

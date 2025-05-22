@@ -21,6 +21,8 @@
 - 5/19/25 - [v0.1.5](/engine/research/beta/layerwV0.1.4.md) Beta Proposal Revision Four
   - Walloc Submodule `v0.1.2`
   - Wwindow Submodule `v0.2.0`
+- 5/21/25 - [v0.1.6](/engine/research/beta/layerwV0.1.4.md) Beta Proposal Revision Five
+  - Walloc Submodule `v0.2.0`
 
 ### Alpha
 

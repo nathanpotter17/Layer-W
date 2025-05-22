@@ -90,6 +90,24 @@ Walloc is a custom memory allocator implemented in Rust for WebAssembly applicat
               - The allocator automatically grows memory when needed
               - Proper memory alignment ensures optimal performance for GPU access
 
+## Review: Borrowing & Ownership Model
+
+- Independent Reference Counting: Each arena (Render, Scene, Entity) has its own Arc<Mutex<>>, meaning its lifetime is managed independently.
+- No Hierarchical Ownership: When a SceneContext is dropped, it doesn't automatically drop the EntityContext objects created from it. Each has its own separate reference count.
+- Manual Reset Required: Without nested lifetimes, you need to explicitly call reset_tier() to clear a tier - dropping a SceneContext doesn't automatically reset its arena.
+  This is optimal considering Rust's approach to borrowing and ownership.
+
+  - Each arrow represents an Arc reference, and when all references to an arena are gone, the Arc is dropped, but the memory isn't fully reclaimed until you explicitly reset the arena.
+    - While this may seem problematic to not enforce garbage collection or a full reset after the Arc is dropped, it allows for the engine to maintain its speed, and leaves the region
+      in the hands of the developer.
+  - ```
+    Scene ------> has reference to ----> Scene Arena
+          |
+          +--> creates --> Entity A ------> has reference to ----> Entity Arena
+          |
+          +--> creates --> Entity B ------> has reference to ----> Entity Arena
+    ```
+
 ## Review: Recycle Model
 
 When you call fast_compact_tier(TIER.SCENE, 1 \* MB), here's what happens:
@@ -99,9 +117,7 @@ When you call fast_compact_tier(TIER.SCENE, 1 \* MB), here's what happens:
 3. Any new allocations will automatically start from this new position (after the preserved area)
 4. The old data beyond the preserved area remains in memory as "garbage" but will be overwritten by new allocations
 
-This gives you a very efficient way to keep important data while recycling the rest of the memory. There's no expensive memory copying involved - it's just a pointer adjustment, which is extremely fast.
-
-Here's a visualization:
+This enables a very efficient way to keep important data while recycling the rest of the memory. There's no expensive memory copying involved - it's just a pointer adjustment, which is extremely fast.
 
 ```
 Before fast_compact_tier(TIER.SCENE, 1MB):
@@ -175,23 +191,6 @@ Tiered Reserve & Grow Behviour:
 - When asked for reservation that exceeds the available tier space, grow, but check if the grow is feasible within the max 4GB memory limit by looking at the preserved contents of the other tiers.
 - When a tier asks for reservation, but 4GB max has already been hit, Attempt to recycle memory in the appropriate tier, Try the allocation again with the newly reclaimed space,
   & Only fail if recycling doesn't free enough space.
-
-## Review: Ownership Model
-
-- Independent Reference Counting: Each arena (Render, Scene, Entity) has its own Arc<Mutex<>>, meaning its lifetime is managed independently.
-- No Hierarchical Ownership: When a SceneContext is dropped, it doesn't automatically drop the EntityContext objects created from it. Each has its own separate reference count.
-- Manual Reset Required: Without nested lifetimes, you need to explicitly call reset_tier() to clear a tier - dropping a SceneContext doesn't automatically reset its arena.
-
-- This approach gives you more flexibility but less automatic cleanup.
-
-  - Each arrow represents an Arc reference, and when all references to an arena are gone, the Arc is dropped, but the memory isn't reclaimed until you explicitly reset the arena.
-  - ```
-    Scene ------> has reference to ----> Scene Arena
-          |
-          +--> creates --> Entity A ------> has reference to ----> Entity Arena
-          |
-          +--> creates --> Entity B ------> has reference to ----> Entity Arena
-    ```
 
 ## Caching Considerations
 

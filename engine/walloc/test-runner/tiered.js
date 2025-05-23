@@ -24,7 +24,7 @@ async function initWasm() {
     await init();
     log('WebAssembly module initialized');
 
-    allocator = Walloc.new_tiered();
+    allocator = Walloc.new();
     log('Walloc tiered allocator created');
 
     // Set up button event handlers

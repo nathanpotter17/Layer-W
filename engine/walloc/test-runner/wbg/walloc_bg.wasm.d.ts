@@ -3,7 +3,6 @@
 export const memory: WebAssembly.Memory;
 export const __wbg_walloc_free: (a: number, b: number) => void;
 export const walloc_new: () => number;
-export const walloc_new_tiered: () => number;
 export const walloc_set_base_url: (a: number, b: number, c: number, d: number) => void;
 export const walloc_load_asset: (a: number, b: number, c: number, d: number) => number;
 export const walloc_test_fetch_json: (a: number) => number;
@@ -13,8 +12,6 @@ export const walloc_get_memory_view: (a: number, b: number, c: number, d: number
 export const walloc_allocate_tiered: (a: number, b: number, c: number) => number;
 export const walloc_fast_compact_tier: (a: number, b: number, c: number) => number;
 export const walloc_reset_tier: (a: number, b: number) => number;
-export const walloc_allocate: (a: number, b: number) => number;
-export const walloc_free: (a: number, b: number) => void;
 export const walloc_copy_from_js: (a: number, b: number, c: number, d: number) => void;
 export const walloc_copy_to_js: (a: number, b: number, c: number, d: number) => void;
 export const walloc_memory_stats: (a: number) => number;

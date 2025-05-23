@@ -4,7 +4,6 @@ export class Walloc {
   private constructor();
   free(): void;
   static new(): Walloc;
-  static new_tiered(): Walloc;
   set_base_url(url: string): void;
   load_asset(path: string, asset_type: number): Promise<any>;
   test_fetch_json(): Promise<any>;
@@ -14,8 +13,6 @@ export class Walloc {
   allocate_tiered(size: number, tier_number: number): number;
   fast_compact_tier(tier_number: number, preserve_bytes: number): boolean;
   reset_tier(tier_number: number): boolean;
-  allocate(size: number): number;
-  free(offset: number): void;
   copy_from_js(offset: number, data: Uint8Array): void;
   copy_to_js(offset: number, length: number): Uint8Array;
   memory_stats(): object;
@@ -27,7 +24,6 @@ export interface InitOutput {
   readonly memory: WebAssembly.Memory;
   readonly __wbg_walloc_free: (a: number, b: number) => void;
   readonly walloc_new: () => number;
-  readonly walloc_new_tiered: () => number;
   readonly walloc_set_base_url: (a: number, b: number, c: number, d: number) => void;
   readonly walloc_load_asset: (a: number, b: number, c: number, d: number) => number;
   readonly walloc_test_fetch_json: (a: number) => number;
@@ -37,8 +33,6 @@ export interface InitOutput {
   readonly walloc_allocate_tiered: (a: number, b: number, c: number) => number;
   readonly walloc_fast_compact_tier: (a: number, b: number, c: number) => number;
   readonly walloc_reset_tier: (a: number, b: number) => number;
-  readonly walloc_allocate: (a: number, b: number) => number;
-  readonly walloc_free: (a: number, b: number) => void;
   readonly walloc_copy_from_js: (a: number, b: number, c: number, d: number) => void;
   readonly walloc_copy_to_js: (a: number, b: number, c: number, d: number) => void;
   readonly walloc_memory_stats: (a: number) => number;

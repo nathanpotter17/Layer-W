@@ -66,6 +66,7 @@
 
 - [Rust Wasm Book](https://rustwasm.github.io/docs/book/why-rust-and-webassembly.html)
 - [WGPU v25](https://github.com/gfx-rs/wgpu/tree/v25/examples)
+- [Raytracing in One Weekend](https://raytracing.github.io/books/RayTracingInOneWeekend.html)
 - [The Practical WASM Memory Guide](https://radu-matei.com/blog/practical-guide-to-wasm-memory/)
 - [WASM Components in Rust](https://component-model.bytecodealliance.org/language-support/rust.html)
 - [Building components in Rust](https://component-model.bytecodealliance.org/language-support/rust.html)
@@ -94,4 +95,4 @@
 - [K23 - microkernel w/ components, wasmtime runtime OS](https://www.youtube.com/watch?v=LraPUAV-fOo)
 - [Simple Made Easy - Strange Loop](https://www.youtube.com/watch?v=8eXiWkPSb50)
 - [Failing to Fail: The Spiderweb Software Way](https://www.youtube.com/watch?v=stxVBJem3Rs)
-  - Shareware and the magic of demo disc conferences
+- [A Visit to ID Software - Nov 1993](https://www.youtube.com/watch?v=HpEBUV_g9vU)

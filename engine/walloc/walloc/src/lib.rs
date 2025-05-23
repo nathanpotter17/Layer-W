@@ -1,7 +1,5 @@
 use wasm_bindgen::prelude::*;
 use std::sync::{Arc, Mutex, atomic::{AtomicUsize, Ordering}};
-
-// For Loading Asset Data
 use reqwest::Client;
 use wasm_bindgen_futures::{future_to_promise};
 use std::collections::HashMap;
@@ -9,14 +7,9 @@ use js_sys::Promise;
 
 #[wasm_bindgen]
 pub struct Walloc {
-    strategy: AllocatorStrategy,
+    strategy: TieredAllocator,
     memory_base: *mut u8,
     memory_size: usize,
-}
-
-pub enum AllocatorStrategy {
-    Default(DefaultAllocator),
-    Tiered(TieredAllocator),
 }
 
 #[repr(C)]
@@ -45,12 +38,6 @@ impl Tier {
     }
 }
 
-pub struct DefaultAllocator {
-    free_list_head: *mut BlockHeader,
-    heap_start: *mut u8,
-    heap_end: *mut u8,
-}
-
 pub struct Arena {
     base: *mut u8,
     size: usize,
@@ -62,9 +49,7 @@ pub struct Arena {
 }
 
 pub struct MemoryOwner {
-    // The arena this entity belongs to
     arena: Arc<Mutex<Arena>>,
-    // Memory regions this entity owns (offset, size)
     allocations: Vec<(usize, usize)>,
 }
 
@@ -89,159 +74,6 @@ pub struct TieredAllocator {
     assets: Arc<Mutex<HashMap<String, AssetMetadata>>>,
     base_url: Arc<Mutex<String>>,
     http_client: Client,
-}
-
-impl DefaultAllocator {
-    pub fn new(heap_start: *mut u8, heap_size: usize) -> Self {
-        let heap_end = unsafe { heap_start.add(heap_size) };
-        
-        // Initialize with a single free block covering the entire heap
-        let initial_block = heap_start as *mut BlockHeader;
-        unsafe {
-            (*initial_block).size = heap_size;
-            (*initial_block).next = std::ptr::null_mut();
-            (*initial_block).is_free = true;
-            (*initial_block).tier = 255; // Default tier (not in any arena)
-        }
-        
-        DefaultAllocator {
-            free_list_head: initial_block,
-            heap_start,
-            heap_end,
-        }
-    }
-    
-    pub fn malloc(&mut self, size: usize) -> *mut u8 {
-        // Align the requested size to 8 bytes (common alignment requirement)
-        let aligned_size;
-        if size > 1024 {
-            aligned_size = (size + 63) & !63;  // Cache Line Alignment, for larger blocks.
-        } else {
-            aligned_size = (size + 7) & !7;    // Regular 8 byte alignment for smaller blocks.
-        }
-        let total_size = aligned_size + std::mem::size_of::<BlockHeader>();
-        
-        // Find a suitable free block using first-fit strategy
-        let mut current = self.free_list_head;
-        let mut _prev: *mut BlockHeader = std::ptr::null_mut();
-        
-        while !current.is_null() {
-            unsafe {
-                if (*current).is_free && (*current).size >= total_size {
-                    // Found a block that's big enough
-                    
-                    // Check if we should split this block
-                    if (*current).size >= total_size + std::mem::size_of::<BlockHeader>() + 8 {
-                        // Block is large enough to split
-                        let new_block = (current as *mut u8).add(total_size) as *mut BlockHeader;
-                        (*new_block).size = (*current).size - total_size;
-                        (*new_block).next = (*current).next;
-                        (*new_block).is_free = true;
-                        (*new_block).tier = (*current).tier;
-                        
-                        // Update current block
-                        (*current).size = total_size;
-                        (*current).next = new_block;
-                    }
-                    
-                    // Mark the block as used
-                    (*current).is_free = false;
-                    
-                    // Return pointer to the data area (after the header)
-                    return (current as *mut u8).add(std::mem::size_of::<BlockHeader>());
-                }
-                
-                // Move to the next block
-                _prev = current;
-                current = (*current).next;
-            }
-        }
-        
-        // If we get here, no suitable block was found.
-        // We could try to grow the heap if supported
-        self.grow_heap(total_size)
-    }
-    
-    pub fn free(&mut self, ptr: *mut u8) {
-        if ptr.is_null() {
-            return; // Null pointer, do nothing
-        }
-        
-        // Get the block header
-        let block = unsafe { (ptr as *mut u8).sub(std::mem::size_of::<BlockHeader>()) } as *mut BlockHeader;
-        
-        unsafe {
-            // Mark the block as free
-            (*block).is_free = true;
-            
-            // Try to coalesce with the next block if it's free
-            let next_block = (*block).next;
-            if !next_block.is_null() && (*next_block).is_free {
-                (*block).size += (*next_block).size;
-                (*block).next = (*next_block).next;
-            }
-            
-            // Try to find the previous block to coalesce if it's free
-            let mut current = self.free_list_head;
-            while !current.is_null() && (*current).next != block {
-                current = (*current).next;
-            }
-            
-            if !current.is_null() && (*current).is_free {
-                // Previous block is free, coalesce
-                (*current).size += (*block).size;
-                (*current).next = (*block).next;
-            }
-        }
-    }
-    
-    // Helper function to grow the heap when needed
-    fn grow_heap(&mut self, size_needed: usize) -> *mut u8 {
-        // Calculate how many WebAssembly pages we need (64KiB per page)
-        let pages_needed = (size_needed + 65535) / 65536;
-        
-        // Try to grow memory
-        let old_pages = core::arch::wasm32::memory_grow(0, pages_needed);
-        if old_pages == usize::MAX {
-            return std::ptr::null_mut(); // Failed to grow memory
-        }
-        
-        // We successfully grew the memory
-        let new_block_start = self.heap_end;
-        let new_block_size = pages_needed * 65536;
-        
-        // Update heap end
-        self.heap_end = unsafe { self.heap_end.add(new_block_size) };
-        
-        // Initialize the new block
-        let new_block = new_block_start as *mut BlockHeader;
-        unsafe {
-            (*new_block).size = new_block_size;
-            (*new_block).next = std::ptr::null_mut();
-            (*new_block).is_free = true;
-            (*new_block).tier = 255; // Default tier (not in any arena)
-        }
-        
-        // Add the new block to our free list
-        // Find the last block in our current free list
-        let mut current = self.free_list_head;
-        while unsafe { !current.is_null() && !(*current).next.is_null() } {
-            current = unsafe { (*current).next };
-        }
-        
-        if !current.is_null() {
-            unsafe { (*current).next = new_block; }
-        } else {
-            self.free_list_head = new_block;
-        }
-        
-        // Now try to allocate again with our newly expanded heap
-        self.malloc(size_needed - std::mem::size_of::<BlockHeader>())
-    }
-
-    pub fn is_ptr_in_heap(&self, ptr: *mut u8) -> bool {
-        ptr >= self.heap_start && ptr < self.heap_end
-    }
 }
 
 // Arena implementation for tiered allocation
@@ -783,7 +615,7 @@ impl TieredAllocator {
     }
     
     // Check if pointer is in any arena
-    fn is_ptr_in_arena(&self, ptr: *mut u8) -> bool {
+    pub fn is_ptr_in_arena(&self, ptr: *mut u8) -> bool {
         if let Ok(arena) = self.render_arena.lock() {
             if arena.contains(ptr) {
                 return true;
@@ -1150,11 +982,8 @@ impl Walloc {
     pub fn new() -> Self {
         let memory_base = core::arch::wasm32::memory_size(0) as *mut u8;
         let memory_size = (core::arch::wasm32::memory_size(0) * 65536) as usize;
-        
-        // Use DefaultAllocator by default
-        let strategy = AllocatorStrategy::Default(
-            DefaultAllocator::new(memory_base, memory_size)
-        );
+
+        let strategy = TieredAllocator::new(memory_base, memory_size);
         
         Walloc {
             strategy,
@@ -1163,86 +992,42 @@ impl Walloc {
         }
     }
     
-    // Create a new Walloc with TieredAllocator
-    #[wasm_bindgen]
-    pub fn new_tiered() -> Self {
-        let memory_base = core::arch::wasm32::memory_size(0) as *mut u8;
-        let memory_size = (core::arch::wasm32::memory_size(0) * 65536) as usize;
-        
-        // Use TieredAllocator
-        let strategy = AllocatorStrategy::Tiered(
-            TieredAllocator::new(memory_base, memory_size)
-        );
-        
-        Walloc {
-            strategy,
-            memory_base,
-            memory_size,
-        }
-    }
-
     #[wasm_bindgen]
     pub fn set_base_url(&self, url: String) -> Result<(), JsValue> {
-        if let AllocatorStrategy::Tiered(allocator) = &self.strategy {
-            allocator.set_base_url(url);
-            Ok(())
-        } else {
-            Err(JsValue::from_str("Asset management requires tiered allocator"))
-        }
+        self.strategy.set_base_url(url);
+        Ok(())
     }
     
     // Async methods return Promise
     #[wasm_bindgen]
     pub fn load_asset(&mut self, path: String, asset_type: u8) -> Promise {
-        if let AllocatorStrategy::Tiered(allocator) = &self.strategy {
-            let mut allocator_clone = allocator.clone();
-            
-            future_to_promise(async move {
-                match allocator_clone.load_asset(path, asset_type).await {
-                    Ok(offset) => Ok(JsValue::from_f64(offset as f64)),
-                    Err(e) => Err(e),
-                }
-            })
-        } else {
-            // Return a rejected promise for non-tiered allocators
-            let err = JsValue::from_str("Asset management requires tiered allocator");
-            let promise = js_sys::Promise::reject(&err);
-            promise
-        }
+        let mut allocator_clone = self.strategy.clone();
+        
+        future_to_promise(async move {
+            match allocator_clone.load_asset(path, asset_type).await {
+                Ok(offset) => Ok(JsValue::from_f64(offset as f64)),
+                Err(e) => Err(e),
+            }
+        })
     }
     
     #[wasm_bindgen]
     pub fn test_fetch_json(&self) -> Promise {
-        if let AllocatorStrategy::Tiered(allocator) = &self.strategy {
-            let allocator_clone = allocator.clone();
-            
-            future_to_promise(async move {
-                allocator_clone.test_fetch_json().await
-            })
-        } else {
-            // Return a rejected promise for non-tiered allocators
-            let err = JsValue::from_str("Asset management requires tiered allocator");
-            let promise = js_sys::Promise::reject(&err);
-            promise
-        }
+        let allocator_clone = self.strategy.clone();
+        
+        future_to_promise(async move {
+            allocator_clone.test_fetch_json().await
+        })
     }
 
     #[wasm_bindgen]
     pub fn evict_asset(&mut self, path: String) -> Result<(), JsValue> {
-        if let AllocatorStrategy::Tiered(allocator) = &mut self.strategy {
-            allocator.evict_asset(&path)
-        } else {
-            Err(JsValue::from_str("Asset management requires tiered allocator"))
-        }
+        self.strategy.evict_asset(&path)
     }
     
     #[wasm_bindgen]
     pub fn get_asset(&self, path: String) -> Result<js_sys::Uint8Array, JsValue> {
-        if let AllocatorStrategy::Tiered(allocator) = &self.strategy {
-            allocator.get_asset(&path)
-        } else {
-            Err(JsValue::from_str("Asset management requires tiered allocator"))
-        }
+        self.strategy.get_asset(&path)
     }
     
     // Get a direct view into WASM memory as a typed array
@@ -1267,15 +1052,7 @@ impl Walloc {
             None => Tier::Entity, // Default to Entity tier if invalid
         };
 
-        let ptr = match &mut self.strategy {
-            AllocatorStrategy::Tiered(allocator) => {
-                allocator.allocate(size, tier)
-            },
-            _ => {
-                // Return 0 for non-tiered allocators
-                return 0;
-            }
-        };
+        let ptr = self.strategy.allocate(size, tier);
 
         self.memory_size = core::arch::wasm32::memory_size(0) * 65536;
         
@@ -1294,12 +1071,7 @@ impl Walloc {
             None => return false,
         };
         
-        match &mut self.strategy {
-            AllocatorStrategy::Tiered(allocator) => {
-                allocator.fast_compact_tier(tier, preserve_bytes)
-            },
-            _ => false,
-        }
+        self.strategy.fast_compact_tier(tier, preserve_bytes)
     }
     
     // Reset a specific tier
@@ -1310,63 +1082,10 @@ impl Walloc {
             None => return false,
         };
         
-        match &mut self.strategy {
-            AllocatorStrategy::Tiered(allocator) => {
-                allocator.reset_tier(tier);
-                true
-            },
-            _ => false,
-        }
+        self.strategy.reset_tier(tier);
+        true
     }
-    
-    // Standard allocate (backward compatibility)
-    #[wasm_bindgen]
-    pub fn allocate(&mut self, size: usize) -> usize {
-        // For backward compatibility, use regular malloc in default mode
-        let ptr = match &mut self.strategy {
-            AllocatorStrategy::Default(allocator) => {
-                allocator.malloc(size)
-            },
-            _ => {
-                return 0;
-            }
-        };
 
-        self.memory_size = core::arch::wasm32::memory_size(0) * 65536;
-        
-        // Return offset from memory base
-        if ptr.is_null() {
-            0 // Error case, return 0 (null) pointer
-        } else {
-            (ptr as usize) - (self.memory_base as usize)
-        }
-    }
-    
-    // Free (Default Allocator Only, Tiered uses reset)
-    #[wasm_bindgen]
-    pub fn free(&mut self, offset: usize) {
-        if offset == 0 {
-            return;
-        }
-
-        let ptr = unsafe { self.memory_base.add(offset) };
-
-        let is_valid = match &self.strategy {
-            AllocatorStrategy::Default(allocator) => {
-                allocator.is_ptr_in_heap(ptr)
-            },
-            _ => false,
-        };
-        
-        if !is_valid {
-            return;
-        }
-        
-        if let AllocatorStrategy::Default(allocator) = &mut self.strategy {
-            allocator.free(ptr);
-        }
-    }
-    
     // Copy data from JS to WASM memory
     #[wasm_bindgen]
     pub fn copy_from_js(&mut self, offset: usize, data: &js_sys::Uint8Array) -> Result<(), JsValue> {
@@ -1401,79 +1120,73 @@ impl Walloc {
         // Track total in-use memory
         let mut total_in_use = 0;
         
-        // Add tier information if using tiered allocator
-        if let AllocatorStrategy::Tiered(allocator) = &self.strategy {
-            let tiers = js_sys::Array::new();
-            
-            for tier_num in 0..3 {
-                if let Some(tier) = Tier::from_u8(tier_num) {
-                    let (used, capacity, high_water, total_allocated) = allocator.tier_stats(tier);
-                    let tier_obj = js_sys::Object::new();
-                    
-                    // Add current usage to total
-                    total_in_use += used;
-                    
-                    js_sys::Reflect::set(
-                        &tier_obj,
-                        &JsValue::from_str("name"),
-                        &JsValue::from_str(match tier {
-                            Tier::Render => "render",
-                            Tier::Scene => "scene",
-                            Tier::Entity => "entity",
-                        })
-                    ).unwrap();
-                    
-                    js_sys::Reflect::set(
-                        &tier_obj,
-                        &JsValue::from_str("used"),
-                        &JsValue::from_f64(used as f64)
-                    ).unwrap();
-                    
-                    js_sys::Reflect::set(
-                        &tier_obj,
-                        &JsValue::from_str("capacity"),
-                        &JsValue::from_f64(capacity as f64)
-                    ).unwrap();
-                    
-                    js_sys::Reflect::set(
-                        &tier_obj,
-                        &JsValue::from_str("highWaterMark"),
-                        &JsValue::from_f64(high_water as f64)
-                    ).unwrap();
-                    
-                    js_sys::Reflect::set(
-                        &tier_obj,
-                        &JsValue::from_str("totalAllocated"),
-                        &JsValue::from_f64(total_allocated as f64)
-                    ).unwrap();
-                    
-                    // Calculate memory savings
-                    let saved = if total_allocated > used {
-                        total_allocated - used
-                    } else {
-                        0
-                    };
-                    
-                    js_sys::Reflect::set(
-                        &tier_obj,
-                        &JsValue::from_str("memorySaved"),
-                        &JsValue::from_f64(saved as f64)
-                    ).unwrap();
-                    
-                    tiers.push(&tier_obj);
-                }
+        // Add tier information
+        let tiers = js_sys::Array::new();
+        
+        for tier_num in 0..3 {
+            if let Some(tier) = Tier::from_u8(tier_num) {
+                let (used, capacity, high_water, total_allocated) = self.strategy.tier_stats(tier);
+                let tier_obj = js_sys::Object::new();
+                
+                // Add current usage to total
+                total_in_use += used;
+                
+                js_sys::Reflect::set(
+                    &tier_obj,
+                    &JsValue::from_str("name"),
+                    &JsValue::from_str(match tier {
+                        Tier::Render => "render",
+                        Tier::Scene => "scene",
+                        Tier::Entity => "entity",
+                    })
+                ).unwrap();
+                
+                js_sys::Reflect::set(
+                    &tier_obj,
+                    &JsValue::from_str("used"),
+                    &JsValue::from_f64(used as f64)
+                ).unwrap();
+                
+                js_sys::Reflect::set(
+                    &tier_obj,
+                    &JsValue::from_str("capacity"),
+                    &JsValue::from_f64(capacity as f64)
+                ).unwrap();
+                
+                js_sys::Reflect::set(
+                    &tier_obj,
+                    &JsValue::from_str("highWaterMark"),
+                    &JsValue::from_f64(high_water as f64)
+                ).unwrap();
+                
+                js_sys::Reflect::set(
+                    &tier_obj,
+                    &JsValue::from_str("totalAllocated"),
+                    &JsValue::from_f64(total_allocated as f64)
+                ).unwrap();
+                
+                // Calculate memory savings
+                let saved = if total_allocated > used {
+                    total_allocated - used
+                } else {
+                    0
+                };
+                
+                js_sys::Reflect::set(
+                    &tier_obj,
+                    &JsValue::from_str("memorySaved"),
+                    &JsValue::from_f64(saved as f64)
+                ).unwrap();
+                
+                tiers.push(&tier_obj);
             }
-            
-            js_sys::Reflect::set(
-                &obj,
-                &JsValue::from_str("tiers"),
-                &tiers
-            ).unwrap();
-        } else if let AllocatorStrategy::Default(_) = &self.strategy {
-            // For default allocator, we don't have tiered tracking
-            // so we can't calculate total_in_use from tiers
-            total_in_use = current_size; // Conservative estimate
         }
+        
+        js_sys::Reflect::set(
+            &obj,
+            &JsValue::from_str("tiers"),
+            &tiers
+        ).unwrap();
         
         // Set the total size to the in-use memory (not just raw WASM memory size)
         js_sys::Reflect::set(
@@ -1499,10 +1212,7 @@ impl Walloc {
         js_sys::Reflect::set(
             &obj,
             &JsValue::from_str("allocatorType"),
-            &JsValue::from_str(match &self.strategy {
-                AllocatorStrategy::Default(_) => "default",
-                AllocatorStrategy::Tiered(_) => "tiered",
-            })
+            &JsValue::from_str("tiered")
         ).unwrap();
         
         // Add useful utilization percentage

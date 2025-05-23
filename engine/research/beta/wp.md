@@ -77,7 +77,8 @@ Because the browser effectively has a compiler that we can make use of, extra WA
 - Aggressive region recycling
 - Near-to-far overwrite pattern
 
-### Inpirations
+### Inspirations
 
 - Miniquad - https://github.com/not-fl3/miniquad/tree/master
 - WASI-GFX - https://github.com/WebAssembly/wasi-gfx
+- gpu-tracing - https://github.com/RayTracing/gpu-tracing/tree/dev

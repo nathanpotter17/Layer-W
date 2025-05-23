@@ -93,3 +93,5 @@
 - [Bytecode Alliance - Bytecode Alliance Mission](https://www.youtube.com/watch?v=ZrLL6jrSVtk)
 - [K23 - microkernel w/ components, wasmtime runtime OS](https://www.youtube.com/watch?v=LraPUAV-fOo)
 - [Simple Made Easy - Strange Loop](https://www.youtube.com/watch?v=8eXiWkPSb50)
+- [Failing to Fail: The Spiderweb Software Way](https://www.youtube.com/watch?v=stxVBJem3Rs)
+  - Shareware and the magic of demo disc conferences

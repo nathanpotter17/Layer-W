@@ -28,6 +28,15 @@ The overhead is front-loaded during initialization, then it gets out of the way 
 - Efficient & Transparent
 - No hidden memory costs or background threads
 
+- Resolution: 1080x720 (Support for 1920x1080 TBD)
+- Target FPS: 60+
+- Quality: AA/AAA-tier
+- Platform: Web + Native
+
+- API: WebGPU via wgpu (web + native)
+- Window: winit with raw_window_handle
+- Surface: Platform-appropriate (HWND/NSWindow/X11/Canvas)
+
 ## Usage Notes
 
 - WebGPU on Windows with Chrome requires you to set your preferred device to the high performance method in you GPU manager and in the windows graphics settings.

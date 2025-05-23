@@ -59,26 +59,7 @@ Because the browser effectively has a compiler that we can make use of, extra WA
 
 ## Graphics Pipeline
 
-### Graphics Targets
-
-- Resolution: 1080x720 (Support for 1920x1080 TBD)
-- Target FPS: 60+
-- Quality: AA/AAA-tier
-- Platform: Web + Native
-
-### Rendering System
-
-- API: WebGPU via wgpu (web + native)
-- Window: winit with raw_window_handle
-- Surface: Platform-appropriate (HWND/NSWindow/X11/Canvas)
-
-### Windowing & Input System
-
-- Winit
-  - Event Loop: Basic Input handling & frame timing
-    - Window Management: Resize, fullscreen, focus
-  - Surface Creation: Platform abstraction layer
-- Input Handling (Side Car / Event Forwarding): SDL2 for native, Gamepad API for web.
+[Read More - Cross Platform Windowing](/engine/wwindow/README.md)
 
 ## Up Next
 

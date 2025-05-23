@@ -8,7 +8,6 @@ use winit::{
 
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
-
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::JsCast;
 
@@ -22,14 +21,11 @@ pub struct State {
     config: wgpu::SurfaceConfiguration,
     size: winit::dpi::PhysicalSize<u32>,
     window: Arc<Window>,
-    #[cfg(not(target_arch = "wasm32"))]
-    webview: Option<wry::WebView>,
 }
 
 impl State {
     pub async fn new(window: Arc<Window>) -> State {
         // Configure instance based on platform
-        
         cfg_if::cfg_if! {
             if #[cfg(target_arch = "wasm32")] {
                 let size = winit::dpi::PhysicalSize::new(DIMX, DIMY);
@@ -42,76 +38,6 @@ impl State {
                 let size = window.inner_size();
                 let instance = wgpu::Instance::default();
                 let limits = wgpu::Limits::default();
-                // Setup familiar web context on native. Meant to interface with Walloc module for runtime asset streaming.
-                #[cfg(not(target_arch = "wasm32"))]
-                let webview = {
-                    use wry::WebViewBuilder;
-
-                    let html_content = r#"
-                    <!DOCTYPE html>
-                    <html>
-                    <body>
-                        <script>
-                            window.sendMessage = function(message) {
-                                // Use the proper Wry IPC mechanism
-                                window.chrome.webview.postMessage(message);
-                            };
-
-                             setTimeout(() => {
-                                window.sendMessage('WebView initialized');
-                            }, 500);
-                            
-                            window.runJavaScript = function(code) {
-                                console.log('Executing JS from Rust:', code);
-                                try {
-                                    let result = eval(code);
-                                    return result;
-                                } catch (e) {
-                                    console.error('JS execution error:', e);
-                                    return null;
-                                }
-                            };
-                        </script>
-                    </body>
-                    </html>
-                    "#;
-                    
-                    let data_url = format!("data:text/html,{}", urlencoding::encode(html_content));
-                    
-                    println!("Creating WebView as child window...");
-                    
-                    let webview = WebViewBuilder::new()
-                        .with_url(&data_url)
-                        .with_initialization_script(
-                            r#"
-                            if (window.chrome && window.chrome.webview) {
-                                console.log('WebView2 API is available');
-                            } else {
-                                console.error('WebView2 API is not available');
-                            }
-                            "#
-                        )
-                        .with_visible(false)
-                        .with_focused(false)
-                        .with_transparent(true)
-                        .with_clipboard(false)
-                        // .with_ipc_handler(|message| { // Can implement capability based IPC like Tauri does
-                        //     println!("IPC Message: {:?}", message);
-                        // })
-                        .build_as_child(&window);
-                        
-                    
-                    match webview {
-                        Ok(webview) => {
-                            println!("Child WebView created successfully!");
-                            Some(webview)
-                        }
-                        Err(e) => {
-                            println!("Failed to create child WebView: {:?}", e);
-                            None
-                        }
-                    }
-                };
             }
         }
 
@@ -221,23 +147,11 @@ impl State {
             queue,
             config,
             size,
-            #[cfg(not(target_arch = "wasm32"))]
-            webview,
         }
     }
 
     pub fn window(&self) -> &Window {
         &self.window
-    }
-
-    #[cfg(not(target_arch = "wasm32"))]
-    pub fn execute_js(&self, js_code: &str) -> Result<(), String> {
-        if let Some(webview) = &self.webview {
-            webview.evaluate_script(js_code)
-                .map_err(|e| format!("Failed to execute JavaScript: {:?}", e))
-        } else {
-            Err("WebView not initialized".to_string())
-        }
     }
 
     pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
@@ -399,25 +313,6 @@ impl ApplicationHandler for App {
             let state = pollster::block_on(State::new(window.clone()));
             self.state = Some(state);
             self.window = Some(window.clone());
-
-            // Initialize webview on native platforms
-            if let Some(state) = &self.state {
-                std::thread::sleep(std::time::Duration::from_millis(300));
-
-                match state.execute_js("console.log('Rust JS evaluation working'); 'Success'") {
-                    Ok(_) => println!("Basic JavaScript executed successfully"),
-                    Err(e) => println!("Error executing JavaScript: {:?}", e),
-                }
-                
-                // Wait for WebView2 to be fully initialized
-                std::thread::sleep(std::time::Duration::from_millis(300));
-                
-                match state.execute_js("window.sendMessage('Direct message test');") {
-                    Ok(_) => println!("Direct IPC message sent"),
-                    Err(e) => println!("Error sending direct IPC message: {:?}", e),
-                }
-            }
-
             window.request_redraw();
         }
     }

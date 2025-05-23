@@ -76,3 +76,8 @@ Because the browser effectively has a compiler that we can make use of, extra WA
 - Direct GPU memory mapping - compute proper work blocks, consider compute shaders as an extension of WASMs processing ability.
 - Aggressive region recycling
 - Near-to-far overwrite pattern
+
+### Inpirations
+
+- Miniquad - https://github.com/not-fl3/miniquad/tree/master
+- WASI-GFX - https://github.com/WebAssembly/wasi-gfx

@@ -14,23 +14,9 @@
     <script type="module">
       import init from './wbg/layerw.js';
 
-      async function run() {
-        try {
-          await init();
-
-          console.log('WASM module loaded successfully');
-          console.log('Engine should be starting...');
-        } catch (error) {
-          console.error('Failed to load WASM module:', error);
-
-          if (!navigator.gpu) {
-            console.error('WebGPU is not supported in this browser');
-            document.getElementById('app').innerHTML =
-              '<p style="color: red;">WebGPU is not supported in this browser. Please use Chrome/Edge with WebGPU enabled.</p>';
-          }
-        }
-      }
-      run();
+      init().then(() => {
+        console.log('WASM module loaded successfully');
+      });
     </script>
   </body>
 </html>

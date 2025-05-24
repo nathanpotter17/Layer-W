@@ -2,6 +2,8 @@
 
 ### Beta
 
+- 5/24/25 - [v0.1.6](/engine/research/beta/layerwV0.1.4.md)
+  - Layer-W `v0.0.2`
 - 5/23/25 - [v0.1.6](/engine/research/beta/layerwV0.1.4.md)
   - Layer-W `v0.0.1`
 - 5/21/25 - [v0.1.6](/engine/research/beta/layerwV0.1.4.md) Beta Proposal Revision Five

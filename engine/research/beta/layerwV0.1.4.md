@@ -11,3 +11,7 @@ A tightly managed cross-platform application engine that maximizes performance t
 Walloc is a custom memory allocator implemented in Rust for WebAssembly applications, specifically optimized for 3D graphics rendering engines. It's designed to be available as a stand-alone library or integrated into larger applications.
 
 [Read More - Layer W Memory Module - Walloc](../../walloc/README.md)
+
+## Development Status
+
+[Development History and Status](/engine/research/beta/history.md)

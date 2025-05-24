@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LayerW</title>
+  </head>
+  <body>
+    <h1>LAYER_W: WebAssembly Engine</h1>
+    <p style="font-style: italic">
+      Web and Native Windowing + Event Management using WebGPU
+    </p>
+    <div id="app"></div>
+    <script type="module">
+      import init from './wbg/layerw.js';
+
+      async function run() {
+        try {
+          await init();
+
+          console.log('WASM module loaded successfully');
+          console.log('Engine should be starting...');
+        } catch (error) {
+          console.error('Failed to load WASM module:', error);
+
+          if (!navigator.gpu) {
+            console.error('WebGPU is not supported in this browser');
+            document.getElementById('app').innerHTML =
+              '<p style="color: red;">WebGPU is not supported in this browser. Please use Chrome/Edge with WebGPU enabled.</p>';
+          }
+        }
+      }
+      run();
+    </script>
+  </body>
+</html>

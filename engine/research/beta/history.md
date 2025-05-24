@@ -2,6 +2,8 @@
 
 ### Beta
 
+- 5/23/25 - [v0.1.6](/engine/research/beta/layerwV0.1.4.md)
+  - Layer-W `v0.0.1`
 - 5/21/25 - [v0.1.6](/engine/research/beta/layerwV0.1.4.md) Beta Proposal Revision Five
   - Walloc Submodule `v0.2.0`
 - 5/19/25 - [v0.1.5](/engine/research/beta/layerwV0.1.4.md) Beta Proposal Revision Four
@@ -96,3 +98,4 @@
 - [Simple Made Easy - Strange Loop](https://www.youtube.com/watch?v=8eXiWkPSb50)
 - [Failing to Fail: The Spiderweb Software Way](https://www.youtube.com/watch?v=stxVBJem3Rs)
 - [A Visit to ID Software - Nov 1993](https://www.youtube.com/watch?v=HpEBUV_g9vU)
+- [Quake 3: Engine Breakdown](https://www.youtube.com/watch?v=NeLkxuzCssA)

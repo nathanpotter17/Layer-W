@@ -6,14 +6,12 @@ pub use wevent::Event;
 pub use wevent::EventType;
 pub use wevent::EventData;
 
-// Only try to re-export JsTimer if compiling for WASM...
-#[cfg(all(target_arch = "wasm32", not(target_os = "wasi")))]
+#[cfg(target_arch = "wasm32")]
 pub use wevent::JsTimer;
-
-#[cfg(all(target_arch = "wasm32", not(target_os = "wasi")))]
+#[cfg(target_arch = "wasm32")]
 pub use wevent::JsWEvent;
 
-#[cfg(all(target_arch = "wasm32", not(target_os = "wasi")))]
+#[cfg(target_arch = "wasm32")]
 pub mod wasm {
     use wasm_bindgen::prelude::*;
     use super::{JsTimer, JsWEvent};

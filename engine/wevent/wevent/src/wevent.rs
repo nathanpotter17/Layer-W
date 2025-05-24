@@ -1,7 +1,7 @@
 use std::time::{Duration, Instant};
 use std::collections::VecDeque;
 
-#[cfg(all(target_arch = "wasm32", not(target_os = "wasi")))]
+#[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -32,12 +32,8 @@ pub enum EventData {
 pub struct Timer {
     #[cfg(not(target_arch = "wasm32"))]
     start: Instant,
-
-    #[cfg(all(target_arch = "wasm32", not(target_os = "wasi")))]
+    #[cfg(target_arch = "wasm32")]
     start_time_ms: f64, // milliseconds, since `Date::now()` returns ms as f64
-
-    #[cfg(all(target_arch = "wasm32", target_os = "wasi"))]
-    start_time_ns: u64, // nanoseconds
 }
 
 // Cross-platform event system for handling events in a game engine.
@@ -58,17 +54,10 @@ impl Timer {
             }
         }
 
-        #[cfg(all(target_arch = "wasm32", not(target_os = "wasi")))]
+        #[cfg(target_arch = "wasm32")]
         {
             Self {
                 start_time_ms: Self::now_ms(),
-            }
-        }
-
-        #[cfg(all(target_arch = "wasm32", target_os = "wasi"))]
-        {
-            Self {
-                start_time_ns: Self::now_ns(),
             }
         }
     }
@@ -79,18 +68,11 @@ impl Timer {
             self.start.elapsed()
         }
 
-        #[cfg(all(target_arch = "wasm32", not(target_os = "wasi")))]
+        #[cfg(target_arch = "wasm32")]
         {
             let now_ms = Self::now_ms();
             let elapsed_ms = now_ms - self.start_time_ms;
             Duration::from_secs_f64(elapsed_ms / 1000.0)
-        }
-
-        #[cfg(all(target_arch = "wasm32", target_os = "wasi"))]
-        {
-            let now_ns = Self::now_ns();
-            let elapsed_ns = now_ns.saturating_sub(self.start_time_ns);
-            Duration::from_nanos(elapsed_ns)
         }
     }
 
@@ -104,27 +86,16 @@ impl Timer {
             self.start = Instant::now();
         }
 
-        #[cfg(all(target_arch = "wasm32", not(target_os = "wasi")))]
+        #[cfg(target_arch = "wasm32")]
         {
             self.start_time_ms = Self::now_ms();
         }
-
-        #[cfg(all(target_arch = "wasm32", target_os = "wasi"))]
-        {
-            self.start_time_ns = Self::now_ns();
-        }
     }
 
-    #[cfg(all(target_arch = "wasm32", not(target_os = "wasi")))]
+    #[cfg(target_arch = "wasm32")]
     fn now_ms() -> f64 {
         use js_sys::Date;
         Date::now()
-    }
-
-    #[cfg(all(target_arch = "wasm32", target_os = "wasi"))]
-    fn now_ns() -> u64 {
-        use wasi::clocks::monotonic_clock;
-        monotonic_clock::now()
     }
 }
 
@@ -207,13 +178,13 @@ impl WEvent {
 }
 
 // === WASM Bindings for Browser ===
-#[cfg(all(target_arch = "wasm32", not(target_os = "wasi")))]
+#[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
 pub struct JsTimer {
     inner: Timer,
 }
 
-#[cfg(all(target_arch = "wasm32", not(target_os = "wasi")))]
+#[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
 impl JsTimer {
     #[wasm_bindgen(constructor)]
@@ -232,13 +203,13 @@ impl JsTimer {
     }
 }
 
-#[cfg(all(target_arch = "wasm32", not(target_os = "wasi")))]
+#[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
 pub struct JsWEvent {
     inner: WEvent,
 }
 
-#[cfg(all(target_arch = "wasm32", not(target_os = "wasi")))]
+#[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
 impl JsWEvent {
     #[wasm_bindgen(constructor)]

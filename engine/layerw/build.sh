@@ -1,5 +1,5 @@
 #!/bin/bash
-# SUBMODULE_001: LAYER-W/ENGINE/wevent.rs BUILD SCRIPT
+# LAYER-W ENGINE: LAYER-W/ENGINE/layerw-engine/lib.rs BUILD SCRIPT
 
 set -e  # Exit on error
 
@@ -15,38 +15,14 @@ confirm() {
         esac
     done
 }
-
-wipe_build() {
-    if [ -d "target" ]; then
-        echo -e "Cleaning previous build...\n"
-        rm -rf target
-    fi
-
-    if [ -d "wasm" ]; then
-        echo -e "Cleaning previous Wasm Bindgen build...\n"
-        rm -rf wasm
-    fi
-
-    if [ -d "pkg" ]; then
-        echo -e "Cleaning previous Wasm Pack build...\n"
-        rm -rf pkg
-    fi
-}
-
-# Main menu
-echo -e "\n===== BUILD: SUBMODULE_001: LAYER-W/ENGINE/wevent.rs =====\n"
+echo -e "================================================================="
+echo -e "\n===== LAYER-W ENGINE: LAYER-W/ENGINE/layerw-engine/lib.rs =======\n"
+echo -e "================================================================="
 echo -e "Choose build target:"
 echo -e "  1) Wasm32 Unknown (wasm32-unknown-unknown)"
 echo -e "  2) Native (cargo, rustc, rustup defaults)"
 read -p "Selection [1]: " choice
 choice=${choice:-1}
-
-build_native() {
-    echo -e "Building for native platform...\n"
-    cargo build --release
-    confirm "running the native binary"
-    cargo run
-}
 
 build_wasm32() {
     echo -e "Building for WebAssembly...\n"
@@ -58,22 +34,22 @@ build_wasm32() {
 
     if [[ "$use_bindgen" =~ ^[Yy]$ ]]; then
         echo -e "Using wasm-bindgen for the build...\n"
-        wasm-bindgen target/wasm32-unknown-unknown/release/wevent.wasm --out-dir ./wbg --target web
+        wasm-bindgen target/wasm32-unknown-unknown/release/layerw.wasm --out-dir ./wbg --target web
+        
+        # echo -e "Using wasm-opt on wasm-bindgen build..."
+        # wasm-opt -Oz ./wbg/layerw_bg.wasm -o ./wbg/layerw_bg.wasm
 
-        echo -e "Using wasm-opt on wasm-bindgen build..."
-        wasm-opt -Oz ./wbg/wevent_bg.wasm -o ./wbg/wevent_bg.wasm
-
-        echo -e "Copying the Wasm Bindgen build to test-runner/wasm directory...\n"
-        if [ ! -d "../test-runner/wbg" ]; then
-            mkdir -p ../test-runner/wbg
+        echo -e "Copying the Wasm Bindgen build to test-runner/wbg directory...\n"
+        if [ ! -d "test-runner/wbg" ]; then
+            mkdir -p test-runner/wbg
         fi
-        cp -r wbg/* ../test-runner/wbg
+        cp -r wbg/* test-runner/wbg
         rm -rf wbg
         echo -e "See test-runner/index.html via server for the Wasm Bindgen build. It uses the lib.rs\n"
     else
         echo -e "Skipping wasm-bindgen. Using wasm-pack instead.\n"
         wasm-pack build --target web --out-dir wasm
-        echo -e "Copying the Wasm Pack build to test-runner/wasm directory...\n"
+        echo -e "Copying the Wasm Pack build to test-runner/wmpkg directory...\n"
         if [ ! -d "../test-runner/wmpkg" ]; then
             mkdir -p ../test-runner/wmpkg
         fi
@@ -81,6 +57,14 @@ build_wasm32() {
         rm -rf wasm
         echo -e "See test-runner/index.html via server for the Wasm Pack build. It uses the lib.rs\n"
     fi
+}
+
+build_native() {
+    echo -e "Building for native platform...\n"
+    cargo build --release
+    echo -e "Build process completed!\n"
+    confirm "running the native binary"
+    cargo run
 }
 
 case $choice in
@@ -95,5 +79,3 @@ case $choice in
         exit 1
         ;;
 esac
-
-echo -e "Build process completed!\n"
